@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Welcome to the Counterfeit Cyber Marketplace</h3>
+            </div>
+            <div class="card-body">
+                <p>Welcome, underground brokers. This is your terminal to trade zero-days, exploit payloads, and private database dumps. Secure your interface, verify your endpoints, and trade responsibly.</p>
+                <hr>
+                <h5>Current Listing Catalog</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped">
+                        <thead>
+                            <tr>
+                                <th>Item ID</th>
+                                <th>Item Name</th>
+                                <th>Description</th>
+                                <th>Price</th>
+                                <th>Seller</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>{{ item.id }}</td>
+                                <td><strong>{{ item.name }}</strong></td>
+                                <td>{{ item.description }}</td>
+                                <td>${{ item.price }}</td>
+                                <td><span class="text-warning">{{ item.seller }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        {% if user %}
+        <div class="card mb-4">
+            <div class="card-header">User Session Details</div>
+            <div class="card-body">
+                <p>Username: <strong class="text-info">{{ user.username }}</strong></p>
+                <p>Role: <strong class="text-success">{{ user.role }}</strong></p>
+                <p>Verify backup credentials config: <code>/static/config.py.bak</code> (Confidential Info)</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="card mb-4">
+            <div class="card-header">Broker Access Panel</div>
+            <div class="card-body">
+                <p>Please authenticate to access the wallet tools, private messages, vulnerability test benches, and discount coupon validations.</p>
+                <a href="/login" class="btn btn-primary w-100 mb-2">Login</a>
+                <a href="/register" class="btn btn-outline-light w-100">Register Account</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

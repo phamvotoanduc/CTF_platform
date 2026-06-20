@@ -1,0 +1,80 @@
+services:
+  gameserver:
+    build: ./gameserver
+    container_name: ctf-gameserver
+    ports:
+      - "8000:8000"
+    volumes:
+      - gameserver_data:/app/data
+    environment:
+      - FLASK_ENV=production
+      - ADMIN_SECRET=SuperSecretAdminKey1337!
+    networks:
+      - ctf-network
+    restart: always
+
+  gitea:
+    image: gitea/gitea:1.21.11
+    container_name: ctf-gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=sqlite3
+      - GITEA__security__INSTALL_LOCK=true
+      - GITEA__server__DISABLE_SSH=true
+      - GITEA__server__OFFLINE_MODE=true
+    ports:
+      - "3000:3000"
+    volumes:
+      - gitea_data:/data
+    networks:
+      - ctf-network
+    restart: always
+
+  deploy-webhook:
+    build: ./deploy-webhook
+    container_name: ctf-deploy-webhook
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/workspace
+    environment:
+      - WEBHOOK_SECRET=GiteaWebhookSecretKey2026
+    networks:
+      - ctf-network
+    restart: always
+
+  team1-service:
+    build: ./teams/team1-service
+    container_name: ctf-team1-service
+    ports:
+      - "8001:5000"
+    environment:
+      - TEAM_NAME=Team1
+      - FLAG_UPDATE_SECRET=Team1FlagUpdateSecretKey2026!
+      - FLAG_TXT_PATH=/flag.txt
+    networks:
+      - ctf-network
+    restart: always
+
+  team2-service:
+    build: ./teams/team2-service
+    container_name: ctf-team2-service
+    ports:
+      - "8002:5000"
+    environment:
+      - TEAM_NAME=Team2
+      - FLAG_UPDATE_SECRET=Team2FlagUpdateSecretKey2026!
+      - FLAG_TXT_PATH=/flag.txt
+    networks:
+      - ctf-network
+    restart: always
+
+networks:
+  ctf-network:
+    driver: bridge
+
+volumes:
+  gameserver_data:
+  gitea_data:

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-md-5">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Safe Balance Account</h3>
+            </div>
+            <div class="card-body">
+                <p>Your current wallet balance is: <strong class="text-success">${{ balance }}</strong></p>
+                <hr>
+                <h5>Withdraw Cash (Vulnerable API Demo)</h5>
+                <p class="text-muted" style="font-size: 0.85rem;">Sends request to <code>/api/withdraw</code>. Under load, this endpoint allows double-spending/race conditions!</p>
+                <div id="withdraw-msg"></div>
+                <form id="withdraw-form">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Withdrawal Amount ($)</label>
+                        <input type="number" class="form-control bg-dark text-white border-secondary" id="amount" value="10" min="1" step="1">
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">Initiate Instant Withdrawal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <h3>Interactive Wallet Log</h3>
+            </div>
+            <div class="card-body">
+                <p>Use the withdrawal button on the left to invoke the cash transfer. Watch your balance dynamically change.</p>
+                <p>To exploit this, run concurrent request threads against <code>/api/withdraw</code> targeting your balance.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('withdraw-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const amount = document.getElementById('amount').value;
+    const msgDiv = document.getElementById('withdraw-msg');
+    msgDiv.innerHTML = '<div class="alert alert-info">Processing...</div>';
+    
+    const formData = new FormData();
+    formData.append('amount', amount);
+    
+    fetch('/api/withdraw', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.status === 'success') {
+            msgDiv.innerHTML = `<div class="alert alert-success">${data.message} | New Balance: $${data.new_balance}</div>`;
+            setTimeout(() => { location.reload(); }, 1500);
+        } else {
+            msgDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+        }
+    })
+    .catch(err => {
+        msgDiv.innerHTML = `<div class="alert alert-danger">Error: ${err}</div>`;
+    });
+});
+</script>
+{% endblock %}

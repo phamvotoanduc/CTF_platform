@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Black Market - {{ team_name }}</title>
+    <!-- Dark themed cyberpunk Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0f111a;
+            color: #cdd6f4;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .navbar {
+            background-color: #1e1e2e;
+            border-bottom: 2px solid #f38ba8;
+        }
+        .navbar-brand {
+            color: #f38ba8 !important;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .card {
+            background-color: #181825;
+            border: 1px solid #313244;
+            color: #cdd6f4;
+        }
+        .card-header {
+            background-color: #11111b;
+            border-bottom: 1px solid #313244;
+            color: #a6e3a1;
+        }
+        .btn-primary {
+            background-color: #f38ba8;
+            border-color: #f38ba8;
+            color: #11111b;
+        }
+        .btn-primary:hover {
+            background-color: #eba0ac;
+            border-color: #eba0ac;
+            color: #11111b;
+        }
+        .alert-info {
+            background-color: #1e1e2e;
+            border-color: #89b4fa;
+            color: #89b4fa;
+        }
+        .footer {
+            margin-top: 50px;
+            padding: 20px;
+            background-color: #11111b;
+            border-top: 1px solid #313244;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">🕵️ Cyber Black Market - {{ team_name }}</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/search">Search</a></li>
+                    {% if user %}
+                    <li class="nav-item"><a class="nav-link" href="/messages">Private Messages</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/wallet">Safe Wallet</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/coupons">Coupon Center</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/diagnostics">Partner Diagnostics</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/profile">My Profile</a></li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex">
+                    {% if user %}
+                    <span class="navbar-text me-3 text-success">
+                        Logged in as: <strong>{{ user.username }}</strong> ({{ user.role }})
+                    </span>
+                    <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+                    {% else %}
+                    <a href="/login" class="btn btn-outline-primary btn-sm me-2">Login</a>
+                    <a href="/register" class="btn btn-primary btn-sm">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2026 The Cyber Black Market - Attack-Defense Environment. Under construction.</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

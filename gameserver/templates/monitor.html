@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Service Monitor Dashboard</h3>
+                <span class="badge bg-secondary">Active Round: {{ round_num }}</span>
+            </div>
+            <div class="card-body">
+                <p>Uptime status of the Vuln-services as validated by the automatic SLA Checker script. Services failing connectivity or validation tests lose points.</p>
+                <div class="table-responsive mt-3">
+                    <table class="table table-dark table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Team Name</th>
+                                <th>SLA Status</th>
+                                <th>Reason / Diagnostic Message</th>
+                                <th>Last Verified Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td><strong>{{ log.display_name }}</strong></td>
+                                <td>
+                                    {% if log.status == 'UP' %}
+                                    <span class="badge bg-success">ONLINE (UP)</span>
+                                    {% elif log.status == 'DOWN' %}
+                                    <span class="badge bg-danger">OFFLINE (DOWN)</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">NO DATA / RE-CHECKING</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <code class="text-warning">{{ log.reason or 'N/A' }}</code>
+                                </td>
+                                <td>{{ log.timestamp or 'Pending start...' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

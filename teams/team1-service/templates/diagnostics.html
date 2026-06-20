@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Remote Partner Host Check</h3>
+            </div>
+            <div class="card-body">
+                <p>Run network latency connectivity diagnostics against your trading partners.</p>
+                <div id="diag-status"></div>
+                <form id="diag-form">
+                    <div class="mb-3">
+                        <label for="target" class="form-label">Partner IP / Domain Address</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" id="target" value="127.0.0.1" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">Send Ping Packets</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Diagnostic Output Console</div>
+            <div class="card-body">
+                <pre id="output-console" class="bg-black p-3 text-success font-monospace" style="min-height: 200px; max-height: 400px; overflow-y: auto;">Console ready.</pre>
+                <div class="alert alert-danger font-monospace mt-2" style="font-size: 0.8rem;">
+                    <strong>System Note:</strong> Input is executed under a raw shell process. Use semicolon/pipeline injection to read files: <code>127.0.0.1; cat /flag.txt</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('diag-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const target = document.getElementById('target').value;
+    const consoleBox = document.getElementById('output-console');
+    consoleBox.textContent = 'Executing ping commands...';
+    
+    const formData = new FormData();
+    formData.append('target', target);
+    
+    fetch('/api/network_check', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            consoleBox.textContent = data.output;
+        } else {
+            consoleBox.textContent = 'Command execution error:\n' + (data.output || 'Uptime server failed or process terminated.');
+        }
+    })
+    .catch(err => {
+        consoleBox.textContent = 'Fatal Error: ' + err;
+    });
+});
+</script>
+{% endblock %}

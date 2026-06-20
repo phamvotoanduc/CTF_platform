@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Vulnerabilities Scanner & Search</h3>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="/search" class="row g-3">
+                    <div class="col-md-9">
+                        <input type="text" name="q" class="form-control bg-dark text-white border-secondary" placeholder="Search product name or descriptions..." value="{{ query }}">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Query Database</button>
+                    </div>
+                </form>
+                
+                {% if query %}
+                <div class="mt-4">
+                    <h5>Search results for: <em>{{ query }}</em></h5>
+                    {% if error %}
+                    <div class="alert alert-danger font-monospace">
+                        <strong>SQL Engine Error:</strong> {{ error }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if results %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-dark table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Item ID</th>
+                                    <th>Item Name</th>
+                                    <th>Description</th>
+                                    <th>Price</th>
+                                    <th>Seller</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in results %}
+                                <tr>
+                                    <td>{{ item.id or item[0] }}</td>
+                                    <td><strong>{{ item.name or item[1] }}</strong></td>
+                                    <td>{{ item.description or item[2] }}</td>
+                                    <td>${{ item.price or item[3] }}</td>
+                                    <td>{{ item.seller or item[4] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No items matched your search criteria.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <hr>
+                <div class="alert alert-warning font-monospace">
+                    <strong>Developer notice:</strong> Database query is structured as dynamic SQL string concatenation. Injection checks are bypassed. SQL Injection PoC: <code>' UNION SELECT id, username, password, balance, role FROM users --</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

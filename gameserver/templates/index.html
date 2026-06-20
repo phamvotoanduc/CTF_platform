@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-md-9">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Game Leaderboard</h3>
+                <span class="badge bg-primary fs-6">Round: <span id="lbl-round">{{ state.current_round }}</span></span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Team Name</th>
+                                <th>Attack Points</th>
+                                <th>Defense Points</th>
+                                <th>SLA Uptime</th>
+                                <th>Total Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            {% for team in leaderboard %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ team.display_name }}</strong></td>
+                                <td class="text-danger">+{{ team.attack_points }}</td>
+                                <td class="text-warning">{{ team.defense_points }}</td>
+                                <td class="text-success">+{{ team.sla_points }}</td>
+                                <td><strong class="text-info">{{ team.attack_points + team.defense_points + team.sla_points }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card mb-4 text-center">
+            <div class="card-header">Game Timer</div>
+            <div class="card-body">
+                <h5 class="card-title">Round Countdown</h5>
+                <h2 class="display-4 text-danger font-monospace" id="lbl-timer">{{ time_left }}s</h2>
+                <hr>
+                <p>Status: 
+                    {% if state.game_started == '1' %}
+                    <span class="badge bg-success">ACTIVE RUNNING</span>
+                    {% else %}
+                    <span class="badge bg-secondary">PAUSED / NOT STARTED</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        {% if not session.team_id %}
+        <div class="card">
+            <div class="card-header">Access Dashboard</div>
+            <div class="card-body">
+                <p class="small text-muted">Log in to submit captured flags and register exploits.</p>
+                <a href="/login" class="btn btn-primary w-100">Team Login</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // AJAX Leaderboard & Timer Polling
+    function updateLeaderboard() {
+        fetch('/api/leaderboard')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('lbl-round').textContent = data.current_round;
+            
+            // Render Countdown
+            document.getElementById('lbl-timer').textContent = data.time_left + 's';
+            
+            // Rebuild table rows
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+            data.teams.forEach((team, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td><strong>${team.display_name}</strong></td>
+                    <td class="text-danger">+${team.attack_points}</td>
+                    <td class="text-warning">${team.defense_points}</td>
+                    <td class="text-success">+${team.sla_points}</td>
+                    <td><strong class="text-info">${team.total_points}</strong></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(err => console.error("Leaderboard fetch error:", err));
+    }
+    
+    // Poll every 5 seconds
+    setInterval(updateLeaderboard, 5000);
+</script>
+{% endblock %}

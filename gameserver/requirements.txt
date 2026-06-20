@@ -1,0 +1,5 @@
+Flask==2.2.5
+Werkzeug==2.2.3
+requests==2.31.0
+gunicorn==20.1.0
+sqlite3-to-mysql==1.5.0; python_version < "3.0" # placeholder for setup standard python sqlite3 is standard lib

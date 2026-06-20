@@ -1,0 +1,12 @@
+# Cyber Black Market configuration backup
+# WARNING: Keep this secure! DO NOT expose to public.
+
+DATABASE_CONFIG = {
+    'db_user': 'root',
+    'db_pass': 'SecretAdminBackdoorPassword2026!',
+    'db_host': 'localhost',
+    'db_name': 'blackmarket'
+}
+
+JWT_SECRET_KEY = "VulnServiceDefaultWeakSecretKey"
+SYSTEM_INTEGRATION_TOKEN = "InternalPartnerToken987654321"

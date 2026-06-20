@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Flag Submission Portal</h3>
+            </div>
+            <div class="card-body">
+                {% if status_msg %}
+                <div class="alert alert-{{ status_type }}">{{ status_msg }}</div>
+                {% endif %}
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="flag" class="form-label">Captured Flag Code</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary font-monospace" id="flag" name="flag" placeholder="FLAG{cyber_black_market_...}" required autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Submit to Scoreboard</button>
+                </form>
+                <div class="mt-4 small text-muted">
+                    <h5>Flag Submission Rules:</h5>
+                    <ul>
+                        <li>Flags are only valid for the current round and immediately preceding round.</li>
+                        <li>Submitting your own flags does not award points and is logged.</li>
+                        <li>Each flag is worth +20 Attack points, and causes -10 Defense points to the victim.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

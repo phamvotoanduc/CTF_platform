@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Black Market - Gameserver</title>
+    <!-- Dark themed cyberpunk Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0c0f1d;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .navbar {
+            background-color: #161b22;
+            border-bottom: 2px solid #58a6ff;
+        }
+        .navbar-brand {
+            color: #58a6ff !important;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+        }
+        .card-header {
+            background-color: #0d1117;
+            border-bottom: 1px solid #30363d;
+            color: #58a6ff;
+        }
+        .btn-primary {
+            background-color: #1f6feb;
+            border-color: #388bfd;
+        }
+        .btn-primary:hover {
+            background-color: #388bfd;
+        }
+        .footer {
+            margin-top: 50px;
+            padding: 20px;
+            background-color: #0d1117;
+            border-top: 1px solid #30363d;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">🛰️ CTF GAMESERVER</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Leaderboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/monitor">Service Status</a></li>
+                    {% if session.team_id %}
+                    <li class="nav-item"><a class="nav-link" href="/submit">Submit Flags</a></li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex">
+                    {% if session.team_id %}
+                    <span class="navbar-text me-3 text-success">
+                        Team: <strong>{{ session.display_name }}</strong>
+                    </span>
+                    <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+                    {% else %}
+                    <a href="/login" class="btn btn-outline-primary btn-sm">Team Login</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2026 The Cyber Black Market - CTF Scoring Platform.</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

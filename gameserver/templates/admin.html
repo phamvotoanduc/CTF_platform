@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Admin Control Panel</h3>
+            </div>
+            <div class="card-body">
+                <p>Status: 
+                    {% if state.game_started == '1' %}
+                    <span class="badge bg-success">ACTIVE RUNNING</span>
+                    {% else %}
+                    <span class="badge bg-secondary">PAUSED / NOT STARTED</span>
+                    {% endif %}
+                </p>
+                <p>Current Game Round: <strong class="text-info">{{ state.current_round }}</strong></p>
+                <p>Round End Unix Timestamp: <code>{{ state.round_end_time }}</code></p>
+                <hr>
+                
+                <h5>Orchestration Commands</h5>
+                <div class="d-flex gap-2">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="start">
+                        <button type="submit" class="btn btn-success" {% if state.game_started == '1' %}disabled{% endif %}>Start Game Engine</button>
+                    </form>
+                    
+                    <form method="POST">
+                        <input type="hidden" name="action" value="stop">
+                        <button type="submit" class="btn btn-warning" {% if state.game_started == '0' %}disabled{% endif %}>Pause Game Engine</button>
+                    </form>
+                    
+                    <form method="POST">
+                        <input type="hidden" name="action" value="force_tick">
+                        <button type="submit" class="btn btn-danger" {% if state.game_started == '0' %}disabled{% endif %}>Force Next Round Tick</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

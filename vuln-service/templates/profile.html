@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>My Broker Identity Card</h3>
+            </div>
+            <div class="card-body">
+                <p>Username: <strong class="text-info">{{ db_user.username }}</strong></p>
+                <p>Role: <strong class="text-warning">{{ db_user.role }}</strong></p>
+                <p>Current Balance: <strong class="text-success">${{ db_user.balance }}</strong></p>
+                <hr>
+                <h5>BOLA Profile Configuration Updates</h5>
+                <p class="text-muted" style="font-size: 0.8rem;">Modifies data parameters via JSON body sending to <code>/api/profile/update</code>.</p>
+                <div id="profile-status"></div>
+                <form id="profile-form">
+                    <div class="mb-3">
+                        <label for="update-username" class="form-label">Username Target (Defaults to current)</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" id="update-username" value="{{ db_user.username }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="update-role" class="form-label">Requested Account Role</label>
+                        <select class="form-select bg-dark text-white border-secondary" id="update-role">
+                            <option value="user" {% if db_user.role == 'user' %}selected{% endif %}>User</option>
+                            <option value="moderator" {% if db_user.role == 'moderator' %}selected{% endif %}>Moderator</option>
+                            <option value="admin" {% if db_user.role == 'admin' %}selected{% endif %}>Admin</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">Update Profile Details</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">BOLA Exploration Guide</div>
+            <div class="card-body">
+                <p>Broken Object Level Authorization (BOLA) occurs when API endpoints rely on user-inputted identifiers (like <code>username</code> in JSON payloads) to update records without validating if the current session actually has permissions to make that alteration.</p>
+                <p>Try capturing and modifying the JSON payload sent by this page to upgrade other users or change your own role to <code>admin</code>!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('profile-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const username = document.getElementById('update-username').value;
+    const role = document.getElementById('update-role').value;
+    const statusDiv = document.getElementById('profile-status');
+    
+    statusDiv.innerHTML = '<div class="alert alert-info">Transmitting payload...</div>';
+    
+    fetch('/api/profile/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            username: username,
+            role: role
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            statusDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+            setTimeout(() => { location.reload(); }, 1500);
+        } else {
+            statusDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+        }
+    })
+    .catch(err => {
+        statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${err}</div>`;
+    });
+});
+</script>
+{% endblock %}
