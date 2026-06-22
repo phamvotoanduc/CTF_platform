@@ -1,0 +1,295 @@
+\documentclass[10pt,journal,compsoc]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{cite}
+
+\geometry{a4paper, margin=1in}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.96}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+\lstset{style=mystyle}
+
+\title{\textbf{Design, Implementation, and Vulnerability Analysis of an Automated Attack-Defense CTF Platform}}
+\author{Pham Vo Toan Duc \\ \small Chuyên ngành An toàn Thông tin \\ \small Trường Đại học Công nghệ Thông tin}
+\date{June 22, 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper presents the design, architecture, and implementation of ``The Cyber Black Market,'' a lightweight, containerized Attack-Defense Capture The Flag (CTF) platform. In cybersecurity education, practical training via hands-on exercises is paramount. While traditional Jeopardy-style CTFs dominate the landscape, they lack real-time adversarial interactions. The developed platform addresses this gap by orchestrating an automated game loop consisting of a Gameserver, an automated Service Level Agreement (SLA) checker, a Git-based CI/CD deployment webhook, and vulnerable client instances. We analyze the containerized network topology, database schemas, and detail the mechanisms of seven simulated vulnerabilities (spanning Race Conditions, IDOR, SQL Injection, Command Injection, BOLA, Weak Cryptography, and Information Disclosure) along with their corresponding secure coding mitigations.
+\end{abstract}
+
+\section{Introduction}
+Practical training in cybersecurity requires simulated environments that mirror real-world systems. Traditional academic instruction often struggles to bridge the gap between theoretical vulnerabilities and the mechanical reality of exploiting and patching software in real-time. Capture The Flag (CTF) competitions have emerged as the standard pedagogical tool for cybersecurity skills acquisition.
+
+CTF structures are categorized into three major formats:
+\begin{itemize}
+    \item \textbf{Jeopardy-style:} A static model where teams solve independent challenges across categories (Web, Reverse Engineering, Cryptography, Binary Exploitation) to obtain flags and accumulate points.
+    \item \textbf{King of the Hill (KotH):} A centralized model where all teams attempt to gain administrative control over a shared server. The team that maintains dominance for the longest duration wins.
+    \item \textbf{Attack-Defense (AD):} A peer-to-peer adversarial model. Each team is allocated an identical server running a set of functional but vulnerable network services. Teams must discover vulnerabilities, exploit them on opponent servers to capture flags, and patch their own services to prevent compromise, all while maintaining service uptime.
+\end{itemize}
+
+This work details the technical implementation of an Attack-Defense platform. We design a microservice-based architecture using Docker virtualization, incorporating Gitea as a self-hosted Git platform to facilitate automated, containerized code patches. The target vulnerable service is modeled as a ``Cyber Black Market'' trading application, exposing realistic web flaws aligned with the OWASP Top 10 guidelines.
+
+\section{System Architecture and Network Topology}
+The platform utilizes a containerized microservice design executed on a Linux host using Docker Compose orchestration. The services are isolated within a dedicated virtual bridge network (\texttt{ctf-network}) to restrict raw packet manipulation and unauthorized lateral movement.
+
+The architecture comprises five logical modules:
+\begin{enumerate}
+    \item \textbf{Gameserver (\texttt{ctf-gameserver}):} The central orchestrator. It manages the round state machine, generates and distributes flags, executes the SLA checking daemon, evaluates napped flags, and computes team scores.
+    \item \textbf{Gitea Server (\texttt{ctf-gitea}):} A self-hosted Git repository hosting team source code. It handles user authentication and triggers push event webhooks.
+    \item \textbf{Deployment Webhook (\texttt{ctf-deploy-webhook}):} An automated CI/CD pipeline listener. Upon receiving Gitea push notifications, it pulls updated source code and issues container rebuild directives.
+    \item \textbf{Vulnerable Services (\texttt{ctf-team1-service}, \texttt{ctf-team2-service}):} Independent instances running the target Flask web applications containing the vulnerabilities.
+\end{enumerate}
+
+To ensure security, only the Gameserver, Gitea, and the team services' public ports are mapped to the host's physical interface (Ports 8000, 3000, 8001, and 8002 respectively). Administrative endpoints, such as flag update interfaces on the team containers, are only reachable within the internal \texttt{ctf-network} routing space, preventing external request forgery.
+
+\section{Database Design and Schema}
+The platform maintains two distinct database scopes: the central Gameserver state database (\texttt{gameserver.db}) and the isolated database within each team's service instance (\texttt{data.db}). Both databases utilize SQLite engine.
+
+\subsection{Gameserver Database Schema}
+The database tracking the global tournament state contains tables for team metadata, generated flags, submissions, and SLA uptime logs.
+
+\begin{table}[h]
+\centering
+\caption{Schema for the \texttt{teams} table}
+\label{tab:teams}
+\begin{tabular}{llll}
+\toprule
+\textbf{Field} & \textbf{Type} & \textbf{Constraints} & \textbf{Description} \\
+\midrule
+\texttt{id} & INTEGER & PRIMARY KEY AUTOINCREMENT & Unique team identifier \\
+\texttt{username} & TEXT & UNIQUE, NOT NULL & Account login username \\
+\texttt{password} & TEXT & NOT NULL & Account password \\
+\texttt{display\_name} & TEXT & NOT NULL & Visual team label \\
+\texttt{attack\_points} & REAL & DEFAULT 0.0 & Points earned from successful exploits \\
+\texttt{defense\_points} & REAL & DEFAULT 0.0 & Penalty deductions from compromised states \\
+\texttt{sla\_points} & REAL & DEFAULT 0.0 & Cumulative uptime performance points \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Schema for the \texttt{flag\_logs} table}
+\label{tab:flag_logs}
+\begin{tabular}{lll}
+\toprule
+\textbf{Field} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\texttt{round} & INTEGER & Game round index \\
+\texttt{team\_id} & INTEGER & ID of the owning team \\
+\texttt{flag\_type} & TEXT & Storage vector (\texttt{'db'}, \texttt{'file'}, \texttt{'env'}) \\
+\texttt{flag\_value} & TEXT & Unique string matching \texttt{FLAG\{...\}} \\
+\texttt{is\_captured} & INTEGER & Flag compromise indicator (0 or 1) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Vulnerable Service Database Schema}
+Each team container hosts an independent database (\texttt{data.db}) modeling a trading application.
+
+\begin{table}[h]
+\centering
+\caption{Schema for the \texttt{users} table in \texttt{vuln-service}}
+\label{tab:users}
+\begin{tabular}{llll}
+\toprule
+\textbf{Field} & \textbf{Type} & \textbf{Constraints} & \textbf{Description} \\
+\midrule
+\texttt{id} & INTEGER & PRIMARY KEY & Unique user ID \\
+\texttt{username} & TEXT & UNIQUE, NOT NULL & Platform username \\
+\texttt{password} & TEXT & NOT NULL & Raw text password \\
+\texttt{balance} & REAL & DEFAULT 100.0 & Financial credit balance \\
+\texttt{role} & TEXT & DEFAULT 'user' & Permissions group (\texttt{'user'} or \texttt{'admin'}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Automated Game Loop and SLA Enforcement}
+The Attack-Defense loop relies on temporal partitioning (Rounds) and SLA monitoring to enforce service availability.
+
+\subsection{Round Execution Flow}
+A background thread in the Gameserver runs an infinite evaluation loop sleeping for 2 seconds. When the current system epoch exceeds the target round end time (\texttt{round\_end\_time}), a new round tick is executed:
+\begin{align}
+\text{Round}_{n+1} &= \text{Round}_{n} + 1 \\
+\text{End Time}_{n+1} &= \text{Time}_{\text{current}} + 120\text{ seconds}
+\end{align}
+
+During the round tick, the Gameserver generates cryptographically random flags for each team and uploads them to the corresponding vulnerable service containers using a secure local POST request. Authenticated by a team-specific pre-shared key, the flags are distributed across three distinct targets:
+\begin{enumerate}
+    \item \textbf{Database Flag:} Written to the \texttt{private\_messages} table under the ownership of the account \texttt{flag\_holder}.
+    \item \textbf{File Flag:} Overwritten in the file \texttt{/flag.txt} inside the container root filesystem.
+    \item \textbf{Environment Flag:} Set via system environment variable \texttt{FLAG\_ENV} accessible via a specific query API.
+\end{enumerate}
+
+\subsection{SLA Checking Mechanism}
+To prevent teams from simply shutting down ports or deploying restrictive firewall rules, the Gameserver runs an automated SLA checking script (\texttt{sla\_checker.py}). The script emulates a standard user by executing the following transactions:
+\begin{enumerate}
+    \item Performs a GET request to the main index page (expects HTTP status 200).
+    \item Registers a unique temporary account via POST request to \texttt{/register}.
+    \item Logs in with the created credentials at \texttt{/login} (expects cookie allocation and session response).
+    \item Sends a private message to the administrator at \texttt{/api/message/send}.
+    \item Executes a search query at \texttt{/search?q=Exploit} and verifies the search result string.
+    \item Sends a BOLA profile update request to \texttt{/api/profile/update}.
+\end{enumerate}
+If any check fails or times out (limit 3 seconds), the service status is flagged as \texttt{DOWN}. A successful check adds $+10.0$ SLA points, whereas a failure deducts $-5.0$ points.
+
+\section{Vulnerability Catalog and Mitigations}
+The core educational component of the platform is the vul-service. We analyze the seven embedded vulnerabilities, providing proof-of-concept (PoC) exploits and secure coding patches.
+
+\subsection{Vulnerability 1: Race Condition}
+The balance withdrawal routine (\texttt{/api/withdraw}) contains a concurrency race condition. The endpoint reads the user's balance, sleeps for $0.5$ seconds (simulating checking latency), and then writes the computed remaining balance. 
+\begin{lstlisting}[language=Python, caption=Vulnerable Race Condition Logic]
+# 1. Fetch balance
+current_balance = cursor.execute("SELECT balance FROM users...").fetchone()['balance']
+if current_balance < amount:
+    return "Insufficient balance", 400
+time.sleep(0.5) # Context switch opportunity
+new_balance = current_balance - amount
+# 2. Update balance
+cursor.execute("UPDATE users SET balance = ?", (new_balance,))
+\end{lstlisting}
+
+If an attacker sends five concurrent HTTP requests, all threads may read the initial balance before any write lock is executed, multiplying the user's balance.
+
+\textbf{Mitigation:} Introduce mutual exclusion locking (\texttt{threading.Lock}) or database-level transactions to enforce atomic operations.
+\begin{lstlisting}[language=Python, caption=Mitigated Concurrency Logic]
+from threading import Lock
+db_lock = Lock()
+# ...
+with db_lock:
+    # Atomic transaction: read, calculate, and write
+\end{lstlisting}
+
+\subsection{Vulnerability 2: Insecure Direct Object References (IDOR)}
+The private message retrieval endpoint (\texttt{/api/message/<int:msg\_id>}) returns confidential correspondence without verifying authorization.
+\begin{lstlisting}[language=Python, caption=Vulnerable IDOR Endpoint]
+@app.route('/api/message/<int:msg_id>')
+def get_message(msg_id):
+    msg = cursor.execute("SELECT * FROM private_messages WHERE id = ?", (msg_id,)).fetchone()
+    return jsonify(dict(msg))
+\end{lstlisting}
+Attackers can loop through \texttt{msg\_id} values (e.g., querying \texttt{msg\_id = 1}) to read the database flag assigned to the \texttt{flag\_holder}.
+
+\textbf{Mitigation:} Retrieve the requester's identity from the session token and assert that the request user is either the sender or receiver of the target message.
+\begin{lstlisting}[language=Python, caption=Mitigated IDOR Check]
+current_user = get_current_user()
+if msg['sender'] != current_user['username'] and msg['receiver'] != current_user['username']:
+    return jsonify({"status": "error", "message": "Unauthorized"}), 403
+\end{lstlisting}
+
+\subsection{Vulnerability 3: SQL Injection}
+The item catalog query interface (\texttt{/search}) concatenates raw user query inputs directly into the SQL string.
+\begin{lstlisting}[language=Python, caption=Vulnerable SQL Concatenation]
+sql_query = f"SELECT * FROM items WHERE name LIKE '%{query}%' OR description LIKE '%{query}%'"
+cursor.execute(sql_query)
+\end{lstlisting}
+Attackers inject SQL payloads using the \texttt{UNION} operator to extract records from adjacent tables, such as \texttt{private\_messages}.
+$$\text{Payload: } \texttt{' UNION SELECT 1, message, 3, 4, 5 FROM private\_messages --}$$
+
+\textbf{Mitigation:} Rewrite using parameterized query statements.
+\begin{lstlisting}[language=Python, caption=Mitigated Parameterized Query]
+cursor.execute("SELECT * FROM items WHERE name LIKE ? OR description LIKE ?", (f'%{query}%', f'%{query}%'))
+\end{lstlisting}
+
+\subsection{Vulnerability 4: Command Injection}
+The diagnostic api (\texttt{/api/network\_check}) invokes shell utilities via execution wrappers with \texttt{shell=True} enabled.
+\begin{lstlisting}[language=Python, caption=Vulnerable Command Execution]
+command = f"ping -c 2 -W 2 {target}"
+output = subprocess.check_output(command, shell=True)
+\end{lstlisting}
+An attacker can append control operators (\texttt{;}, \texttt{\&\&}, \texttt{|}) inside the \texttt{target} parameter to execute arbitrary system commands, escaping the container sandbox context to read local configuration flags.
+$$\text{Payload: } \texttt{target = 127.0.0.1; cat /flag.txt}$$
+
+\textbf{Mitigation:} Sanitize user inputs using restrictive regular expressions to ensure the parameter only contains letters, digits, and standard dot boundaries.
+\begin{lstlisting}[language=Python, caption=Mitigated Regular Expression Filtering]
+import re
+if not re.match(r"^[a-zA-Z0-9.-]+$", target):
+    return jsonify({"status": "error", "message": "Invalid input characters"}), 400
+\end{lstlisting}
+
+\subsection{Vulnerability 5: Broken Object Level Authorization (BOLA)}
+The profile modification api (\texttt{/api/profile/update}) trusts client-supplied variables in the JSON body payload to update the user account records, and fails to strip parameters.
+\begin{lstlisting}[language=Python, caption=Vulnerable BOLA Profile Handler]
+username_to_update = data.get('username') # Arbitrary client variable
+new_role = data.get('role')
+new_balance = data.get('balance')
+cursor.execute("UPDATE users SET role = ?, balance = ? WHERE username = ?", (new_role, new_balance, username_to_update))
+\end{lstlisting}
+Attackers submit custom JSON payloads targeting their own username to elevate permissions to \texttt{'admin'} or artificially inflate their account balance.
+
+\textbf{Mitigation:} Force the update target username to be bound strictly to the cryptographically verified session token, and block changes to administrative keys.
+\begin{lstlisting}[language=Python, caption=Mitigated Profile Updates]
+current_user = get_current_user()
+username_to_update = current_user['username'] # Overwrite with token identity
+if 'role' in data or 'balance' in data:
+    return jsonify({"status": "error", "message": "Modification of restricted fields is forbidden"}), 403
+\end{lstlisting}
+
+\subsection{Vulnerability 6: Weak Cryptography}
+The platform checks coupon claims at \texttt{/api/coupon/claim} against an MD5 hashing calculation with a static, hardcoded salt:
+\begin{equation}
+\text{Coupon}_{\text{expected}} = \text{MD5}(\text{username} + \text{``WEAK\_SALT''})
+\end{equation}
+Because the salt is hardcoded, an attacker can generate valid coupon signatures for any account and claim duplicate credits.
+
+\textbf{Mitigation:} Implement a cryptographically secure message authentication code (HMAC-SHA256) backed by a strong key.
+\begin{lstlisting}[language=Python, caption=Mitigated HMAC Verification]
+import hmac, hashlib
+SECRET_KEY = b"StrongRandomServerSideKey2026!!!"
+expected_hash = hmac.new(SECRET_KEY, user['username'].encode(), hashlib.sha256).hexdigest()
+\end{lstlisting}
+
+\subsection{Vulnerability 7: Hardcoded Credentials and Information Disclosure}
+The repository exposes a backup configuration file at \texttt{/static/config.py.bak} publicly. The file contains the default database passwords and the token secret key (\texttt{``VulnServiceDefaultWeakSecretKey''}). Attackers extract the JWT secret, allowing them to sign arbitrary cookies and bypass authentication filters.
+
+\textbf{Mitigation:} Remove backup and configuration files from the static deployment directory and generate a secure random string key on runtime.
+\begin{lstlisting}[language=Python, caption=Mitigated Secret Keys]
+import os
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET', os.urandom(32).hex())
+\end{lstlisting}
+
+\section{Platform Security Assessment}
+While team services are intentionally vulnerable, the central Gameserver must remain secure. The Gameserver is designed with the following security controls:
+\begin{itemize}
+    \item \textbf{SQL Injection Prevention:} All inputs processed by the Gameserver database are parameterized. No string interpolation is used for database modifications.
+    \item \textbf{Anti-Replay Protections:} Flags are bound to their generation round. The submission portal only accepts flags from the current round $r_t$ and the immediately preceding round $r_{t-1}$.
+    \item \textbf{API Tampering Prevention:} The flag update endpoints on team containers are protected with a unique token value (\texttt{FLAG\_UPDATE\_SECRET}) injected via Docker environment configs.
+\end{itemize}
+
+\section{Conclusion and Future Work}
+The constructed Attack-Defense CTF platform provides a robust environment for practical cybersecurity training. By combining container virtualization, self-hosted Git repositories, webhook CI/CD triggers, and realistic vulnerabilities, the platform provides a complete framework for testing and reinforcing secure coding practices under competitive pressure. 
+
+Future iterations will incorporate centralized network traffic capture (PCAP) recording to enable post-event forensic investigations. We also plan to migrate the container scheduling engine to a Kubernetes cluster to scale the platform for larger enterprise environments.
+
+\end{document}
