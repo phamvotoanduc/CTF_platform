@@ -1,42 +1,436 @@
 {% extends 'base.html' %}
 {% block content %}
+
+<style>
+    /* ═══════════════════════════════════════════════
+       ADMIN PAGE — Control Panel
+    ═══════════════════════════════════════════════ */
+
+    .admin-page-header {
+        margin-bottom: 1.75rem;
+    }
+
+    .admin-page-title {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.2rem;
+    }
+
+    .admin-page-title span { color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
+
+    .admin-page-sub {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    /* Admin card base */
+    .admin-card {
+        background: linear-gradient(145deg, rgba(18,18,20,0.95), rgba(10,10,12,0.98));
+        border: 1px solid var(--accent-border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        margin-bottom: 1.25rem;
+        position: relative;
+    }
+
+    .admin-card::before {
+        content: '';
+        display: block;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, var(--accent) 20%, var(--accent) 80%, transparent 100%);
+        box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .admin-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 1.75rem;
+        border-bottom: 1px solid var(--border-subtle);
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .admin-card-title {
+        font-family: var(--font-display);
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin: 0;
+    }
+
+    .admin-card-body {
+        padding: 1.5rem 1.75rem;
+    }
+
+    /* ─── Status Grid ─── */
+    .system-status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .status-stat {
+        background: rgba(0,0,0,0.5);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.25rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .status-stat::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: var(--accent);
+        opacity: 0.3;
+    }
+
+    .status-stat-label {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.4rem;
+    }
+
+    .status-stat-value {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .status-stat-value.accent { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
+    .status-stat-value.success-color { color: var(--success); }
+    .status-stat-value.muted-color { color: var(--text-secondary); font-size: 1rem; }
+
+    .status-stat-sub {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        margin-top: 0.2rem;
+    }
+
+    /* ─── Command Buttons ─── */
+    .commands-section-title {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .commands-section-title::before {
+        content: '//';
+        color: var(--accent);
+        opacity: 0.7;
+    }
+
+    .commands-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+
+    /* Admin action button base */
+    .btn-admin {
+        width: 100%;
+        padding: 0.85rem 1.25rem;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border: 1px solid;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        position: relative;
+        overflow: hidden;
+        background: transparent;
+    }
+
+    .btn-admin:disabled {
+        opacity: 0.25;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Start — Green */
+    .btn-admin-start {
+        color: var(--success);
+        border-color: rgba(0, 255, 136, 0.3);
+        background: rgba(0, 255, 136, 0.06);
+    }
+
+    .btn-admin-start:hover:not(:disabled) {
+        background: rgba(0, 255, 136, 0.14);
+        border-color: var(--success);
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        transform: translateY(-1px);
+    }
+
+    /* Pause — Yellow */
+    .btn-admin-pause {
+        color: var(--accent);
+        border-color: var(--accent-border);
+        background: var(--accent-dim);
+    }
+
+    .btn-admin-pause:hover:not(:disabled) {
+        background: rgba(255, 230, 0, 0.18);
+        border-color: var(--accent);
+        box-shadow: 0 0 20px rgba(255, 230, 0, 0.2);
+        transform: translateY(-1px);
+    }
+
+    /* Force tick — Orange */
+    .btn-admin-tick {
+        color: var(--warning);
+        border-color: rgba(255, 140, 0, 0.3);
+        background: rgba(255, 140, 0, 0.06);
+    }
+
+    .btn-admin-tick:hover:not(:disabled) {
+        background: rgba(255, 140, 0, 0.14);
+        border-color: var(--warning);
+        box-shadow: 0 0 20px rgba(255, 140, 0, 0.2);
+        transform: translateY(-1px);
+    }
+
+    /* ─── Danger Zone ─── */
+    .danger-zone-card {
+        background: linear-gradient(145deg, rgba(18,18,20,0.95), rgba(10,10,12,0.98));
+        border: 1px solid rgba(255, 59, 59, 0.3);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(255, 59, 59, 0.05);
+    }
+
+    .danger-zone-card::before {
+        content: '';
+        display: block;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, var(--danger) 20%, var(--danger) 80%, transparent 100%);
+        box-shadow: 0 0 10px var(--danger-glow);
+    }
+
+    .danger-zone-header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 1rem 1.75rem;
+        border-bottom: 1px solid rgba(255, 59, 59, 0.15);
+    }
+
+    .danger-zone-title {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--danger);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin: 0;
+    }
+
+    .danger-zone-body {
+        padding: 1.5rem 1.75rem;
+    }
+
+    .danger-warning-text {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: rgba(255, 130, 130, 0.8);
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 59, 59, 0.06);
+        border: 1px solid rgba(255, 59, 59, 0.15);
+        border-radius: var(--radius-sm);
+        line-height: 1.6;
+    }
+
+    /* Reset — Red */
+    .btn-admin-reset {
+        color: var(--danger);
+        border-color: rgba(255, 59, 59, 0.35);
+        background: rgba(255, 59, 59, 0.06);
+        padding: 0.85rem 2rem;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-admin-reset:hover {
+        background: rgba(255, 59, 59, 0.16);
+        border-color: var(--danger);
+        box-shadow: 0 0 24px rgba(255, 59, 59, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .btn-admin-reset:active { transform: translateY(0); }
+</style>
+
+<!-- Page Header -->
+<div class="admin-page-header">
+    <h1 class="admin-page-title">⚙ Admin <span>Control Panel</span></h1>
+    <p class="admin-page-sub">// Restricted — Operator Access Only</p>
+</div>
+
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h3>Admin Control Panel</h3>
+    <div class="col-lg-9 col-md-10">
+
+        <!-- ════ System Status ════ -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-card-title">◈ System Status</h2>
+                <span id="admin-game-status" class="ctf-badge {% if state.game_started == '1' %}ctf-badge-success{% else %}ctf-badge-muted{% endif %}">
+                    {% if state.game_started == '1' %}● ACTIVE RUNNING{% else %}◌ PAUSED{% endif %}
+                </span>
             </div>
-            <div class="card-body">
-                <p>Status: 
-                    {% if state.game_started == '1' %}
-                    <span class="badge bg-success">ACTIVE RUNNING</span>
-                    {% else %}
-                    <span class="badge bg-secondary">PAUSED / NOT STARTED</span>
-                    {% endif %}
-                </p>
-                <p>Current Game Round: <strong class="text-info">{{ state.current_round }}</strong></p>
-                <p>Round End Unix Timestamp: <code>{{ state.round_end_time }}</code></p>
-                <hr>
-                
-                <h5>Orchestration Commands</h5>
-                <div class="d-flex gap-2">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="start">
-                        <button type="submit" class="btn btn-success" {% if state.game_started == '1' %}disabled{% endif %}>Start Game Engine</button>
-                    </form>
-                    
-                    <form method="POST">
-                        <input type="hidden" name="action" value="stop">
-                        <button type="submit" class="btn btn-warning" {% if state.game_started == '0' %}disabled{% endif %}>Pause Game Engine</button>
-                    </form>
-                    
-                    <form method="POST">
-                        <input type="hidden" name="action" value="force_tick">
-                        <button type="submit" class="btn btn-danger" {% if state.game_started == '0' %}disabled{% endif %}>Force Next Round Tick</button>
-                    </form>
+            <div class="admin-card-body">
+                <div class="system-status-grid">
+
+                    <div class="status-stat">
+                        <div class="status-stat-label">Current Round</div>
+                        <div class="status-stat-value accent">{{ state.current_round }}</div>
+                        <div class="status-stat-sub">Round number</div>
+                    </div>
+
+                    <div class="status-stat">
+                        <div class="status-stat-label">Engine State</div>
+                        {% if state.game_started == '1' %}
+                        <div class="status-stat-value success-color">ACTIVE</div>
+                        <div class="status-stat-sub">Game is running</div>
+                        {% else %}
+                        <div class="status-stat-value muted-color">PAUSED</div>
+                        <div class="status-stat-sub">Game is halted</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="status-stat">
+                        <div class="status-stat-label">Round End Timestamp</div>
+                        <div class="status-stat-value muted-color" style="font-size: 0.85rem; word-break: break-all;">
+                            {{ state.round_end_time or '—' }}
+                        </div>
+                        <div class="status-stat-sub">Unix epoch</div>
+                    </div>
+
                 </div>
             </div>
         </div>
+
+        <!-- ════ Orchestration Commands ════ -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-card-title">◈ Orchestration Commands</h2>
+            </div>
+            <div class="admin-card-body">
+                <div class="commands-section-title">Engine Control</div>
+
+                <div class="commands-grid">
+
+                    <!-- Start -->
+                    <form method="POST">
+                        <input type="hidden" name="action" value="start">
+                        <button type="submit"
+                            class="btn-admin btn-admin-start"
+                            {% if state.game_started == '1' %}disabled title="Game is already running"{% endif %}
+                        >
+                            <span>▶</span>
+                            <span>Start Game Engine</span>
+                        </button>
+                    </form>
+
+                    <!-- Pause -->
+                    <form method="POST">
+                        <input type="hidden" name="action" value="stop">
+                        <button type="submit"
+                            class="btn-admin btn-admin-pause"
+                            {% if state.game_started == '0' %}disabled title="Game is already paused"{% endif %}
+                        >
+                            <span>⏸</span>
+                            <span>Pause Game Engine</span>
+                        </button>
+                    </form>
+
+                    <!-- Force Tick -->
+                    <form method="POST">
+                        <input type="hidden" name="action" value="force_tick">
+                        <button type="submit"
+                            class="btn-admin btn-admin-tick"
+                            {% if state.game_started == '0' %}disabled title="Game must be running to force tick"{% endif %}
+                            onclick="return confirm('Force advance to the next round? This cannot be undone.');"
+                        >
+                            <span>⚡</span>
+                            <span>Force Next Round Tick</span>
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ Danger Zone ════ -->
+        <div class="danger-zone-card">
+            <div class="danger-zone-header">
+                <span>☠</span>
+                <h3 class="danger-zone-title">Danger Zone — Irreversible Operations</h3>
+            </div>
+            <div class="danger-zone-body">
+
+                <p class="danger-warning-text">
+                    ⚠ WARNING: The following action will permanently destroy all game data including scores, flag logs, SLA records, and round history. This operation <strong>cannot be undone</strong>. Only proceed if you are intentionally resetting the entire competition.
+                </p>
+
+                <form method="POST"
+                    onsubmit="return confirm('⚠ CRITICAL: Are you absolutely sure?\n\nThis will permanently wipe ALL scores, flags, SLA logs, and round data.\n\nType OK to confirm or Cancel to abort.');"
+                >
+                    <input type="hidden" name="action" value="reset">
+                    <button type="submit" class="btn-admin-reset">
+                        <span>☠</span>
+                        <span>Reset Game Engine</span>
+                    </button>
+                </form>
+
+            </div>
+        </div>
+
     </div>
 </div>
+
 {% endblock %}

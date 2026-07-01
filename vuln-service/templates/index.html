@@ -1,34 +1,74 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Welcome to the Counterfeit Cyber Marketplace</h3>
+<div class="row g-3">
+    <!-- COL 1: Commodities & Recent Trades (3/12) -->
+    <div class="col-xl-3 col-lg-4">
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>🕵️ Hardware Commodities</h3></div>
+            <div class="ctf-card-body" style="padding:0;">
+                {% set commodities = [
+                    ('CELL-STING_A1 Catcher', '$28,500 TC', 'Active IMSI signal capture node.'),
+                    ('PROXMARK4 Dev Kit', '$1,250 TC', 'Multi-frequency RFID/NFC emulator.'),
+                    ('UNEARTHED DATASET', '$14,200 TC', '20M Global PII database dump.'),
+                    ('FLIPPER ZERO + Mayhem', '$620 TC', 'Sub-GHz RF transmitter & receiver.')
+                ] %}
+                {% for name, price, desc in commodities %}
+                <div style="padding:10px 14px;border-bottom:1px solid var(--border-subtle);transition:background var(--transition-fast);" onmouseover="this.style.background='rgba(255,230,0,0.03)'" onmouseout="this.style.background='transparent'">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                        <strong class="text-accent font-mono" style="font-size:0.78rem;">{{ name }}</strong>
+                        <span class="text-success font-mono" style="font-size:0.68rem;white-space:nowrap;">{{ price }}</span>
+                    </div>
+                    <p class="text-muted font-mono" style="margin:0;font-size:0.65rem;">{{ desc }}</p>
+                </div>
+                {% endfor %}
             </div>
-            <div class="card-body">
-                <p>Welcome, underground brokers. This is your terminal to trade zero-days, exploit payloads, and private database dumps. Secure your interface, verify your endpoints, and trade responsibly.</p>
-                <hr>
-                <h5>Current Listing Catalog</h5>
-                <div class="table-responsive">
-                    <table class="table table-dark table-striped">
-                        <thead>
-                            <tr>
-                                <th>Item ID</th>
-                                <th>Item Name</th>
-                                <th>Description</th>
-                                <th>Price</th>
-                                <th>Seller</th>
-                            </tr>
-                        </thead>
+        </div>
+
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>📈 Recent Activity</h3></div>
+            <div class="ctf-card-body" style="padding:0;">
+                <table class="ctf-table">
+                    <thead><tr><th>Item</th><th>Price</th><th>Broker</th></tr></thead>
+                    <tbody>
+                        <tr><td>CELL-STING</td><td class="text-danger">$28.5K</td><td class="text-muted">shadow_op</td></tr>
+                        <tr><td>PROXMARK4</td><td class="text-success">$1.25K</td><td class="text-muted">anon_b</td></tr>
+                        <tr><td>UNEARTHED</td><td class="text-success">$14.2K</td><td class="text-muted">operator_1</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- COL 2: Product Inventory (6/12) -->
+    <div class="col-xl-6 col-lg-8">
+        <div class="ctf-card">
+            <div class="ctf-card-header">
+                <div>
+                    <h3>📦 Physical Product Inventory</h3>
+                    <div class="ctf-card-subtitle">Available zero-days, exploit payloads, and private database dumps</div>
+                </div>
+            </div>
+            <div class="ctf-card-body" style="padding:0;">
+                <div style="overflow-x:auto;">
+                    <table class="ctf-table">
+                        <thead><tr><th>#</th><th>Hardware Item</th><th>Status</th><th>Price</th><th>Seller</th></tr></thead>
                         <tbody>
                             {% for item in items %}
                             <tr>
-                                <td>{{ item.id }}</td>
-                                <td><strong>{{ item.name }}</strong></td>
-                                <td>{{ item.description }}</td>
-                                <td>${{ item.price }}</td>
-                                <td><span class="text-warning">{{ item.seller }}</span></td>
+                                <td class="text-muted font-mono" style="font-size:0.7rem;">#{{ item.id }}</td>
+                                <td>
+                                    <div class="text-accent fw-bold font-mono" style="font-size:0.82rem;">{{ item.name }}</div>
+                                    <div class="text-muted" style="font-size:0.66rem;">{{ item.description }}</div>
+                                </td>
+                                <td>
+                                    {% if item.id % 2 == 0 %}
+                                    <span class="ctf-badge ctf-badge-success">Ready</span>
+                                    {% else %}
+                                    <span class="ctf-badge ctf-badge-danger">Sold Out</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-success fw-bold font-mono">${{ item.price }}</td>
+                                <td class="text-muted" style="font-size:0.75rem;">{{ item.seller }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -36,28 +76,98 @@
                 </div>
             </div>
         </div>
+
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>🛡️ Trusted Broker Listings</h3></div>
+            <div class="ctf-card-body" style="padding:0;">
+                <table class="ctf-table">
+                    <thead><tr><th>Commodity</th><th>Est. Value</th><th>Seller Rating</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-accent font-mono">iOS Safari Sandbox Escape RCE Chain</td>
+                            <td class="text-success fw-bold font-mono">$850,000</td>
+                            <td>jailbreak_lord <span class="text-accent">(99.8%)</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-accent font-mono">Android Kernel LPE exploit payload</td>
+                            <td class="text-success fw-bold font-mono">$250,000</td>
+                            <td>goog_hunter <span class="text-accent">(98.2%)</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-accent font-mono">Signal Messenger zero-click exploit</td>
+                            <td class="text-success fw-bold font-mono">$1,500,000</td>
+                            <td>crypt_shadow <span class="text-accent">(100%)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    
-    <div class="col-md-4">
-        {% if user %}
-        <div class="card mb-4">
-            <div class="card-header">User Session Details</div>
-            <div class="card-body">
-                <p>Username: <strong class="text-info">{{ user.username }}</strong></p>
-                <p>Role: <strong class="text-success">{{ user.role }}</strong></p>
-                <p>Verify backup credentials config: <code>/static/config.py.bak</code> (Confidential Info)</p>
+
+    <!-- COL 3: Position Manager & Alerts (3/12) -->
+    <div class="col-xl-3 col-lg-12">
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>💼 Position Manager</h3></div>
+            <div class="ctf-card-body">
+                {% if user %}
+                <div class="stat-box" style="margin-bottom:14px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.75rem;">
+                        <span class="text-muted">Broker Account</span>
+                        <span class="text-accent fw-bold font-mono">{{ user.username }}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.75rem;">
+                        <span class="text-muted">Safe Balance</span>
+                        <span class="text-success fw-bold font-mono">${{ user.balance }} TC</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+                        <span class="text-muted">Role</span>
+                        <span class="ctf-badge-muted">{{ user.role.upper() }}</span>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                    <button class="btn-ctf-primary" style="width:50%;font-size:0.72rem;">BUY</button>
+                    <button class="btn-ctf-danger" style="width:50%;font-size:0.72rem;">SELL</button>
+                </div>
+                <div class="ctf-form-group">
+                    <label class="ctf-label">Units to Trade</label>
+                    <input type="number" class="ctf-input" placeholder="1.0">
+                </div>
+                <div class="ctf-form-group">
+                    <label class="ctf-label">Price in USD</label>
+                    <input type="number" class="ctf-input" placeholder="0.00">
+                </div>
+                <a href="/wallet" class="btn-ctf-primary">Go to Safe Wallet</a>
+                {% else %}
+                <div style="text-align:center;padding:20px 0;">
+                    <div style="font-size:2rem;margin-bottom:12px;opacity:0.3;">🔐</div>
+                    <p class="text-muted" style="font-size:0.78rem;margin-bottom:16px;">Authenticated connection required to access position manager.</p>
+                    <a href="/login" class="btn-ctf-primary" style="margin-bottom:8px;">Login to System</a>
+                    <a href="/register" class="btn-ctf-outline">Register Broker</a>
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% else %}
-        <div class="card mb-4">
-            <div class="card-header">Broker Access Panel</div>
-            <div class="card-body">
-                <p>Please authenticate to access the wallet tools, private messages, vulnerability test benches, and discount coupon validations.</p>
-                <a href="/login" class="btn btn-primary w-100 mb-2">Login</a>
-                <a href="/register" class="btn btn-outline-light w-100">Register Account</a>
+
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>📟 System Alerts</h3></div>
+            <div class="ctf-card-body">
+                <div class="terminal-log" id="alert-console">
+                    <div class="terminal-line"><span class="terminal-time">[00:01]</span> <span class="text-success">SYSTEM: Server initialized.</span></div>
+                    <div class="terminal-line"><span class="terminal-time">[00:03]</span> SECURITY: SSL Handshake completed.</div>
+                    <div class="terminal-line"><span class="terminal-time">[00:08]</span> <span class="terminal-warn">WARN: Multi-IP probing on /search.</span></div>
+                    <div class="terminal-line"><span class="terminal-time">[00:15]</span> <span class="text-success">STATUS: Database load complete.</span></div>
+                </div>
+                <div class="vuln-hint" style="margin-top:12px;border-style:dashed;">
+                    <div class="vuln-hint-title">⚠️ System Component Hint:</div>
+                    Check the backup credentials at: <a href="/static/config.py.bak">/static/config.py.bak</a>
+                </div>
             </div>
         </div>
-        {% endif %}
     </div>
 </div>
+
+<script>
+const c = document.getElementById('alert-console');
+if (c) c.scrollTop = c.scrollHeight;
+</script>
 {% endblock %}

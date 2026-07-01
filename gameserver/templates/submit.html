@@ -1,32 +1,370 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3>Flag Submission Portal</h3>
+
+<style>
+    /* ═══════════════════════════════════════════════
+       SUBMIT PAGE — Flag Submission Command Center
+    ═══════════════════════════════════════════════ */
+
+    .submit-wrapper {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 1rem 0 3rem;
+    }
+
+    .submit-panel {
+        width: 100%;
+        max-width: 640px;
+    }
+
+    /* Page header */
+    .submit-page-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .submit-page-title {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+    }
+
+    .submit-page-title span { color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
+
+    .submit-page-sub {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    /* Main submission card */
+    .submit-card {
+        background: linear-gradient(145deg, rgba(18,18,20,0.95), rgba(10,10,12,0.98));
+        border: 1px solid var(--accent-border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        position: relative;
+        box-shadow:
+            0 8px 32px rgba(0,0,0,0.5),
+            0 0 60px rgba(255,230,0,0.04);
+    }
+
+    /* Top LED accent */
+    .submit-card::before {
+        content: '';
+        display: block;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, var(--accent) 20%, var(--accent) 80%, transparent 100%);
+        box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .submit-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.75rem;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .submit-card-title {
+        font-family: var(--font-display);
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .submit-card-body {
+        padding: 1.75rem;
+    }
+
+    /* Flag input */
+    .flag-input-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.6rem;
+    }
+
+    .flag-input-label .prefix { color: var(--accent); }
+
+    .flag-input {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        font-family: var(--font-mono);
+        font-size: 1rem;
+        font-weight: 400;
+        color: var(--text-primary);
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: var(--radius-sm);
+        outline: none;
+        letter-spacing: 0.04em;
+        transition: all var(--transition-base);
+        -webkit-appearance: none;
+    }
+
+    .flag-input::placeholder {
+        color: rgba(255, 230, 0, 0.2);
+        font-size: 0.9rem;
+        letter-spacing: 0.02em;
+    }
+
+    .flag-input:hover:not(:focus) {
+        border-color: rgba(255,255,255,0.14);
+    }
+
+    .flag-input:focus {
+        border-color: var(--accent);
+        background: rgba(255, 230, 0, 0.03);
+        box-shadow:
+            0 0 0 3px rgba(255, 230, 0, 0.10),
+            0 0 24px rgba(255, 230, 0, 0.06);
+    }
+
+    /* Submit button */
+    .btn-submit-flag {
+        width: 100%;
+        padding: 0.9rem 1.5rem;
+        margin-top: 1rem;
+        font-family: var(--font-display);
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #000;
+        background: var(--accent);
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-submit-flag::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%);
+        opacity: 0;
+        transition: opacity var(--transition-base);
+    }
+
+    .btn-submit-flag:hover {
+        background: #fff;
+        box-shadow: 0 0 28px var(--accent-glow), 0 0 56px rgba(255,230,0,0.10);
+        transform: translateY(-1px);
+    }
+
+    .btn-submit-flag:hover::before { opacity: 1; }
+    .btn-submit-flag:active { transform: translateY(0); }
+
+    /* Status alert (success/error from server) */
+    .submit-status-alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        padding: 0.85rem 1.1rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: 1.25rem;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+
+    .submit-status-alert .alert-icon { flex-shrink: 0; font-size: 0.9rem; }
+
+    .alert-success-style {
+        background: var(--success-dim);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        color: var(--success);
+    }
+
+    .alert-danger-style {
+        background: var(--danger-dim);
+        border: 1px solid rgba(255, 59, 59, 0.3);
+        color: #ff8080;
+    }
+
+    .alert-warning-style {
+        background: var(--warning-dim);
+        border: 1px solid rgba(255, 140, 0, 0.35);
+        color: var(--warning);
+    }
+
+    /* Rules / Info section */
+    .rules-section {
+        margin-top: 1.5rem;
+        padding: 1.25rem 1.5rem;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: var(--radius-sm);
+        border-left: 3px solid var(--accent);
+        position: relative;
+    }
+
+    .rules-title {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-bottom: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .rules-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .rules-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .rules-list li .rule-bullet {
+        flex-shrink: 0;
+        color: var(--accent);
+        font-size: 0.7rem;
+        margin-top: 2px;
+    }
+
+    .rules-list li .rule-highlight {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .rules-list li .score-atk  { color: #ff6b6b; font-weight: 700; }
+    .rules-list li .score-def  { color: var(--accent-bright); font-weight: 700; }
+
+    /* Divider */
+    .form-divider {
+        height: 1px;
+        background: var(--border-subtle);
+        margin: 1.25rem 0;
+    }
+</style>
+
+<div class="submit-wrapper">
+    <div class="submit-panel">
+
+        <div class="submit-page-header">
+            <h1 class="submit-page-title">🏴 Flag <span>Submission</span></h1>
+            <p class="submit-page-sub">// Command Center — Exploit Registry</p>
+        </div>
+
+        <div class="submit-card">
+            <div class="submit-card-header">
+                <h2 class="submit-card-title">
+                    <span>◈</span>
+                    Flag Submission Portal
+                </h2>
+                <span class="ctf-badge ctf-badge-accent">Authenticated</span>
             </div>
-            <div class="card-body">
+
+            <div class="submit-card-body">
+
                 {% if status_msg %}
-                <div class="alert alert-{{ status_type }}">{{ status_msg }}</div>
+                <div class="submit-status-alert
+                    {% if status_type == 'success' %}alert-success-style
+                    {% elif status_type == 'danger' %}alert-danger-style
+                    {% else %}alert-warning-style
+                    {% endif %}"
+                    role="alert"
+                >
+                    <span class="alert-icon">
+                        {% if status_type == 'success' %}✓
+                        {% elif status_type == 'danger' %}✕
+                        {% else %}⚠
+                        {% endif %}
+                    </span>
+                    <span>{{ status_msg }}</span>
+                </div>
                 {% endif %}
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="flag" class="form-label">Captured Flag Code</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary font-monospace" id="flag" name="flag" placeholder="FLAG{cyber_black_market_...}" required autocomplete="off">
+
+                <form method="POST" id="flag-form" autocomplete="off">
+                    <div style="margin-bottom: 0.75rem;">
+                        <label for="flag" class="flag-input-label">
+                            <span class="prefix">$</span>
+                            Captured Flag Code
+                        </label>
+                        <input
+                            type="text"
+                            class="flag-input"
+                            id="flag"
+                            name="flag"
+                            placeholder="FLAG{cyber_black_market_...}"
+                            required
+                            autocomplete="off"
+                            spellcheck="false"
+                            autocapitalize="none"
+                        >
                     </div>
-                    <button type="submit" class="btn btn-success w-100">Submit to Scoreboard</button>
+
+                    <button type="submit" class="btn-submit-flag" id="btn-submit-flag">
+                        ▶ Submit to Scoreboard
+                    </button>
                 </form>
-                <div class="mt-4 small text-muted">
-                    <h5>Flag Submission Rules:</h5>
-                    <ul>
-                        <li>Flags are only valid for the current round and immediately preceding round.</li>
-                        <li>Submitting your own flags does not award points and is logged.</li>
-                        <li>Each flag is worth +20 Attack points, and causes -10 Defense points to the victim.</li>
+
+                <div class="form-divider"></div>
+
+                <!-- Rules section -->
+                <div class="rules-section">
+                    <div class="rules-title">
+                        <span>⚠</span>
+                        Flag Submission Rules
+                    </div>
+                    <ul class="rules-list">
+                        <li>
+                            <span class="rule-bullet">›</span>
+                            <span>Flags are only valid for the <span class="rule-highlight">current round</span> and the immediately preceding round.</span>
+                        </li>
+                        <li>
+                            <span class="rule-bullet">›</span>
+                            <span>Submitting <span class="rule-highlight">your own flags</span> does not award points and is logged for review.</span>
+                        </li>
+                        <li>
+                            <span class="rule-bullet">›</span>
+                            <span>Each captured flag grants <span class="score-atk">+20 Attack pts</span> to attacker and deducts <span class="score-def">−10 Defense pts</span> from the victim team.</span>
+                        </li>
                     </ul>
                 </div>
+
             </div>
         </div>
+
     </div>
 </div>
+
 {% endblock %}

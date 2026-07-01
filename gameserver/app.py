@@ -403,14 +403,23 @@ def admin_panel():
         action = request.form.get('action')
         if action == 'start':
             cursor.execute("UPDATE game_state SET value = '1' WHERE key = 'game_started'")
+            cursor.execute("UPDATE game_state SET value = '0' WHERE key = 'round_end_time'")
             db.commit()
-            # Trigger first round tick immediately
-            run_round_tick()
         elif action == 'stop':
             cursor.execute("UPDATE game_state SET value = '0' WHERE key = 'game_started'")
             db.commit()
         elif action == 'force_tick':
-            run_round_tick()
+            cursor.execute("UPDATE game_state SET value = '0' WHERE key = 'round_end_time'")
+            db.commit()
+        elif action == 'reset':
+            cursor.execute("UPDATE game_state SET value = '0' WHERE key = 'current_round'")
+            cursor.execute("UPDATE game_state SET value = '0' WHERE key = 'game_started'")
+            cursor.execute("UPDATE game_state SET value = '0' WHERE key = 'round_end_time'")
+            cursor.execute("UPDATE teams SET attack_points = 0.0, defense_points = 0.0, sla_points = 0.0")
+            cursor.execute("DELETE FROM flag_logs")
+            cursor.execute("DELETE FROM sla_logs")
+            cursor.execute("DELETE FROM submissions")
+            db.commit()
             
         return redirect(url_for('admin_panel', secret=ADMIN_SECRET))
         

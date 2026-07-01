@@ -1,36 +1,54 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
-    <div class="col-md-5">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Safe Balance Account</h3>
-            </div>
-            <div class="card-body">
-                <p>Your current wallet balance is: <strong class="text-success">${{ balance }}</strong></p>
-                <hr>
-                <h5>Withdraw Cash (Vulnerable API Demo)</h5>
-                <p class="text-muted" style="font-size: 0.85rem;">Sends request to <code>/api/withdraw</code>. Under load, this endpoint allows double-spending/race conditions!</p>
+<div class="row g-3">
+    <!-- Balance & Withdrawal -->
+    <div class="col-xl-5 col-lg-6">
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>💳 Safe Balance Account</h3></div>
+            <div class="ctf-card-body">
+                <div style="background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.28);border-radius:var(--radius-sm);padding:18px;margin-bottom:20px;text-align:center;">
+                    <div class="stat-label">Current Wallet Balance</div>
+                    <div class="stat-value text-success" style="font-size:2.5rem;text-shadow:0 0 20px rgba(0,255,136,0.3);">${{ balance }}</div>
+                    <div class="text-success font-mono" style="font-size:0.8rem;opacity:0.7;margin-top:4px;">TC</div>
+                </div>
+
+                <hr class="divider">
+
+                <h5 style="font-size:0.78rem;color:var(--accent);letter-spacing:1px;margin-bottom:4px;">Withdraw Funds (Demo API)</h5>
+                <p class="text-muted font-mono" style="font-size:0.72rem;margin-bottom:12px;">This endpoint sends POST to <code>/api/withdraw</code>. Under concurrency, this API is vulnerable to <strong class="text-accent">race conditions</strong>.</p>
+
                 <div id="withdraw-msg"></div>
+
                 <form id="withdraw-form">
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Withdrawal Amount ($)</label>
-                        <input type="number" class="form-control bg-dark text-white border-secondary" id="amount" value="10" min="1" step="1">
+                    <div class="ctf-form-group">
+                        <label for="amount" class="ctf-label">Withdrawal Amount ($)</label>
+                        <input type="number" class="ctf-input" id="amount" value="10" min="1" step="1">
                     </div>
-                    <button type="submit" class="btn btn-warning w-100">Initiate Instant Withdrawal</button>
+                    <button type="submit" class="btn-ctf-primary">Initiate Withdrawal</button>
                 </form>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-7">
-        <div class="card">
-            <div class="card-header">
-                <h3>Interactive Wallet Log</h3>
+
+    <!-- Transaction Log -->
+    <div class="col-xl-7 col-lg-6">
+        <div class="ctf-card">
+            <div class="ctf-card-header">
+                <h3>📟 Transaction Vault Log</h3>
+                <span style="width:7px;height:7px;background:var(--success);border-radius:50%;box-shadow:0 0 8px rgba(0,255,136,0.35);display:inline-block;animation:pulse-dot 2s infinite;"></span>
             </div>
-            <div class="card-body">
-                <p>Use the withdrawal button on the left to invoke the cash transfer. Watch your balance dynamically change.</p>
-                <p>To exploit this, run concurrent request threads against <code>/api/withdraw</code> targeting your balance.</p>
+            <div class="ctf-card-body">
+                <p class="text-muted font-mono" style="font-size:0.75rem;margin-bottom:12px;">Use the withdrawal form to initiate a transfer. Logs update dynamically.</p>
+                <div class="terminal-log" id="wallet-terminal" style="height:260px;">
+                    <div class="terminal-line"><span class="terminal-time">[LOGS]</span> <span class="text-success">Wallet daemon active. Ready to process.</span></div>
+                    <div class="terminal-line"><span class="terminal-time">[LOGS]</span> Status: <span class="text-accent">IDLE</span></div>
+                    <div class="terminal-line"><span class="terminal-time">[HINT]</span> <span class="text-muted">To exploit, send parallel requests to</span> <code>/api/withdraw</code></div>
+                </div>
+
+                <div class="vuln-hint vuln-hint-danger" style="margin-top:12px;">
+                    <div class="vuln-hint-title">🚨 Race Condition Vulnerability:</div>
+                    The withdraw API checks balance <em>before</em> deducting. Concurrent requests exploit the TOCTOU window.
+                </div>
             </div>
         </div>
     </div>
@@ -41,26 +59,37 @@ document.getElementById('withdraw-form').addEventListener('submit', function(e) 
     e.preventDefault();
     const amount = document.getElementById('amount').value;
     const msgDiv = document.getElementById('withdraw-msg');
-    msgDiv.innerHTML = '<div class="alert alert-info">Processing...</div>';
-    
+    const term = document.getElementById('wallet-terminal');
+
+    msgDiv.innerHTML = '<div class="ctf-alert ctf-alert-warning">Processing withdrawal...</div>';
+    if (term) {
+        term.innerHTML += `<div class="terminal-line"><span class="terminal-time">[TRAN]</span> Requesting withdrawal of <span class="text-accent">$${amount}</span>...</div>`;
+        term.scrollTop = term.scrollHeight;
+    }
+
     const formData = new FormData();
     formData.append('amount', amount);
-    
-    fetch('/api/withdraw', {
-        method: 'POST',
-        body: formData
-    })
+
+    fetch('/api/withdraw', { method: 'POST', body: formData })
     .then(response => response.json())
     .then(data => {
         if(data.status === 'success') {
-            msgDiv.innerHTML = `<div class="alert alert-success">${data.message} | New Balance: $${data.new_balance}</div>`;
+            msgDiv.innerHTML = `<div class="ctf-alert ctf-alert-success">✅ ${data.message} | Balance: $${data.new_balance}</div>`;
+            if (term) {
+                term.innerHTML += `<div class="terminal-line"><span class="terminal-time">[OK]</span> <span class="text-success">Transfer complete. New balance: $${data.new_balance}</span></div>`;
+                term.scrollTop = term.scrollHeight;
+            }
             setTimeout(() => { location.reload(); }, 1500);
         } else {
-            msgDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+            msgDiv.innerHTML = `<div class="ctf-alert ctf-alert-danger">⛔ ${data.message}</div>`;
+            if (term) {
+                term.innerHTML += `<div class="terminal-line"><span class="terminal-time" style="color:var(--danger)">[ERR]</span> <span class="text-danger">${data.message}</span></div>`;
+                term.scrollTop = term.scrollHeight;
+            }
         }
     })
     .catch(err => {
-        msgDiv.innerHTML = `<div class="alert alert-danger">Error: ${err}</div>`;
+        msgDiv.innerHTML = `<div class="ctf-alert ctf-alert-danger">⛔ Error: ${err}</div>`;
     });
 });
 </script>

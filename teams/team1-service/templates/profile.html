@@ -1,44 +1,72 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>My Broker Identity Card</h3>
-            </div>
-            <div class="card-body">
-                <p>Username: <strong class="text-info">{{ db_user.username }}</strong></p>
-                <p>Role: <strong class="text-warning">{{ db_user.role }}</strong></p>
-                <p>Current Balance: <strong class="text-success">${{ db_user.balance }}</strong></p>
-                <hr>
-                <h5>BOLA Profile Configuration Updates</h5>
-                <p class="text-muted" style="font-size: 0.8rem;">Modifies data parameters via JSON body sending to <code>/api/profile/update</code>.</p>
-                <div id="profile-status"></div>
-                <form id="profile-form">
-                    <div class="mb-3">
-                        <label for="update-username" class="form-label">Username Target (Defaults to current)</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" id="update-username" value="{{ db_user.username }}">
+<div class="row g-3">
+    <!-- Identity Card + BOLA form -->
+    <div class="col-xl-6 col-lg-6">
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>👤 Broker Identity</h3></div>
+            <div class="ctf-card-body">
+                <div class="stat-box" style="margin-bottom:20px;">
+                    <div style="display:flex;justify-content:space-between;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--border-subtle);font-size:0.78rem;">
+                        <span class="text-muted font-mono">Username</span>
+                        <strong class="text-accent font-mono">{{ db_user.username }}</strong>
                     </div>
-                    <div class="mb-3">
-                        <label for="update-role" class="form-label">Requested Account Role</label>
-                        <select class="form-select bg-dark text-white border-secondary" id="update-role">
+                    <div style="display:flex;justify-content:space-between;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--border-subtle);font-size:0.78rem;">
+                        <span class="text-muted font-mono">Permission Group</span>
+                        <span class="ctf-badge ctf-badge-danger">{{ db_user.role.upper() }}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.78rem;">
+                        <span class="text-muted font-mono">Wallet Balance</span>
+                        <strong class="text-success font-mono">${{ db_user.balance }} TC</strong>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <h5 style="font-size:0.78rem;color:var(--accent);letter-spacing:1px;margin-bottom:4px;">BOLA Profile Configuration</h5>
+                <p class="text-muted font-mono" style="font-size:0.72rem;margin-bottom:12px;">Submits JSON to <code>/api/profile/update</code>.</p>
+
+                <div id="profile-status"></div>
+
+                <form id="profile-form">
+                    <div class="ctf-form-group">
+                        <label for="update-username" class="ctf-label">Username Target</label>
+                        <input type="text" class="ctf-input" id="update-username" value="{{ db_user.username }}">
+                    </div>
+                    <div class="ctf-form-group">
+                        <label for="update-role" class="ctf-label">Requested Role</label>
+                        <select class="ctf-input" id="update-role">
                             <option value="user" {% if db_user.role == 'user' %}selected{% endif %}>User</option>
                             <option value="moderator" {% if db_user.role == 'moderator' %}selected{% endif %}>Moderator</option>
                             <option value="admin" {% if db_user.role == 'admin' %}selected{% endif %}>Admin</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-warning w-100">Update Profile Details</button>
+                    <button type="submit" class="btn-ctf-primary">Commit Configuration</button>
                 </form>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">BOLA Exploration Guide</div>
-            <div class="card-body">
-                <p>Broken Object Level Authorization (BOLA) occurs when API endpoints rely on user-inputted identifiers (like <code>username</code> in JSON payloads) to update records without validating if the current session actually has permissions to make that alteration.</p>
-                <p>Try capturing and modifying the JSON payload sent by this page to upgrade other users or change your own role to <code>admin</code>!</p>
+
+    <!-- BOLA explanation -->
+    <div class="col-xl-6 col-lg-6">
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>🛡️ BOLA Security Analysis</h3></div>
+            <div class="ctf-card-body">
+                <div class="terminal-log" style="height:auto;min-height:130px;margin-bottom:16px;">
+                    <div class="terminal-line"><span class="terminal-time">[INFO]</span> Analyzing authorization...</div>
+                    <div class="terminal-line"><span class="terminal-time">[SCAN]</span> <span class="text-accent">BOLA detected in /api/profile/update</span></div>
+                    <div class="terminal-line"><span class="terminal-time">[DATA]</span> Endpoint trusts user-supplied <code>username</code> field</div>
+                    <div class="terminal-line"><span class="terminal-time">[RISK]</span> <span class="text-danger">CRITICAL: No session ownership check</span></div>
+                </div>
+
+                <p class="text-muted" style="font-size:0.78rem;line-height:1.7;margin-bottom:16px;">
+                    <strong class="text-secondary">Broken Object Level Authorization (BOLA)</strong> occurs when APIs rely on user-inputted identifiers to update records without verifying session ownership.
+                </p>
+
+                <div class="vuln-hint">
+                    <div class="vuln-hint-title">🕵️ BOLA Test Bench:</div>
+                    Try modifying the JSON payload to upgrade other users or change your own role to <code>admin</code>!
+                </div>
             </div>
         </div>
     </div>
@@ -50,30 +78,25 @@ document.getElementById('profile-form').addEventListener('submit', function(e) {
     const username = document.getElementById('update-username').value;
     const role = document.getElementById('update-role').value;
     const statusDiv = document.getElementById('profile-status');
-    
-    statusDiv.innerHTML = '<div class="alert alert-info">Transmitting payload...</div>';
-    
+
+    statusDiv.innerHTML = '<div class="ctf-alert ctf-alert-warning">Transmitting payload...</div>';
+
     fetch('/api/profile/update', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            username: username,
-            role: role
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, role: role })
     })
     .then(res => res.json())
     .then(data => {
         if(data.status === 'success') {
-            statusDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+            statusDiv.innerHTML = `<div class="ctf-alert ctf-alert-success">✅ ${data.message}</div>`;
             setTimeout(() => { location.reload(); }, 1500);
         } else {
-            statusDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+            statusDiv.innerHTML = `<div class="ctf-alert ctf-alert-danger">⛔ ${data.message}</div>`;
         }
     })
     .catch(err => {
-        statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${err}</div>`;
+        statusDiv.innerHTML = `<div class="ctf-alert ctf-alert-danger">⛔ Error: ${err}</div>`;
     });
 });
 </script>

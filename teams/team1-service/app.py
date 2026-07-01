@@ -141,6 +141,20 @@ def update_flags():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+# Simple Test Vulnerability (Vulnerability 8 - Backdoor Export)
+# Attackers can get target flag by visiting /api/secret_export?token=admin_test_token
+@app.route('/api/secret_export', methods=['GET'])
+def secret_export():
+    token = request.args.get('token')
+    if token == 'admin_test_token':
+        try:
+            with open(FLAG_TXT_PATH, 'r') as f:
+                flag = f.read().strip()
+            return jsonify({"status": "success", "flag": flag}), 200
+        except Exception as e:
+            return jsonify({"status": "error", "message": "Failed to read flag file"}), 500
+    return jsonify({"status": "error", "message": "Invalid access token"}), 403
+
 # Endpoint to display environmental variable flag
 @app.route('/env_flag', methods=['GET'])
 def get_env_flag():

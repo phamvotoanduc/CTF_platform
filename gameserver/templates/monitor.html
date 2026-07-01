@@ -1,48 +1,331 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="mb-0">Service Monitor Dashboard</h3>
-                <span class="badge bg-secondary">Active Round: {{ round_num }}</span>
-            </div>
-            <div class="card-body">
-                <p>Uptime status of the Vuln-services as validated by the automatic SLA Checker script. Services failing connectivity or validation tests lose points.</p>
-                <div class="table-responsive mt-3">
-                    <table class="table table-dark table-striped align-middle">
-                        <thead>
-                            <tr>
-                                <th>Team Name</th>
-                                <th>SLA Status</th>
-                                <th>Reason / Diagnostic Message</th>
-                                <th>Last Verified Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for log in logs %}
-                            <tr>
-                                <td><strong>{{ log.display_name }}</strong></td>
-                                <td>
-                                    {% if log.status == 'UP' %}
-                                    <span class="badge bg-success">ONLINE (UP)</span>
-                                    {% elif log.status == 'DOWN' %}
-                                    <span class="badge bg-danger">OFFLINE (DOWN)</span>
-                                    {% else %}
-                                    <span class="badge bg-warning text-dark">NO DATA / RE-CHECKING</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <code class="text-warning">{{ log.reason or 'N/A' }}</code>
-                                </td>
-                                <td>{{ log.timestamp or 'Pending start...' }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+
+<style>
+    /* ═══════════════════════════════════════════════
+       MONITOR PAGE — Service Uptime Monitor
+    ═══════════════════════════════════════════════ */
+
+    /* Page header */
+    .monitor-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .monitor-title {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 0;
+    }
+
+    .monitor-title span { color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
+
+    .monitor-subtitle {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-top: 0.2rem;
+    }
+
+    /* Monitor card */
+    .monitor-card {
+        background: linear-gradient(145deg, rgba(18,18,20,0.95), rgba(10,10,12,0.98));
+        border: 1px solid var(--accent-border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .monitor-card::before {
+        content: '';
+        display: block;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, var(--accent) 20%, var(--accent) 80%, transparent 100%);
+        box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .monitor-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 1.75rem;
+        border-bottom: 1px solid var(--border-subtle);
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .monitor-card-title {
+        font-family: var(--font-display);
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin: 0;
+    }
+
+    .monitor-description {
+        padding: 0.9rem 1.75rem;
+        font-family: var(--font-body);
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-subtle);
+        line-height: 1.6;
+    }
+
+    /* ─── Monitor Table ─── */
+    .monitor-table-wrap {
+        overflow-x: auto;
+    }
+
+    .monitor-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 3px;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .monitor-table thead th {
+        font-family: var(--font-mono);
+        font-size: 0.67rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        padding: 0.4rem 1.25rem;
+        border-bottom: 1px solid var(--accent-border);
+        background: transparent;
+        white-space: nowrap;
+    }
+
+    .monitor-table tbody tr {
+        background: var(--bg-elevated);
+        transition: background var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .monitor-table tbody tr:hover {
+        background: rgba(255, 230, 0, 0.03);
+        box-shadow: 0 0 0 1px var(--accent-border);
+    }
+
+    .monitor-table tbody td {
+        padding: 1rem 1.25rem;
+        font-size: 0.88rem;
+        vertical-align: middle;
+        border: none;
+        color: var(--text-primary);
+    }
+
+    /* Team name cell */
+    .monitor-team-name {
+        font-family: var(--font-body);
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    /* ─── LED Status Indicators ─── */
+    .status-led {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: var(--radius-sm);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+    }
+
+    .status-led .led-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    /* ONLINE / UP */
+    .status-led.led-up {
+        background: rgba(0, 255, 136, 0.10);
+        border: 1px solid rgba(0, 255, 136, 0.28);
+        color: var(--success);
+    }
+
+    .status-led.led-up .led-dot {
+        background: var(--success);
+        box-shadow: 0 0 6px var(--success-glow), 0 0 12px rgba(0, 255, 136, 0.4);
+        animation: led-pulse-green 2s ease-in-out infinite;
+    }
+
+    @keyframes led-pulse-green {
+        0%, 100% { box-shadow: 0 0 6px var(--success-glow); transform: scale(1); }
+        50%       { box-shadow: 0 0 12px var(--success-glow), 0 0 20px rgba(0,255,136,0.3); transform: scale(1.15); }
+    }
+
+    /* OFFLINE / DOWN */
+    .status-led.led-down {
+        background: rgba(255, 59, 59, 0.10);
+        border: 1px solid rgba(255, 59, 59, 0.30);
+        color: var(--danger);
+    }
+
+    .status-led.led-down .led-dot {
+        background: var(--danger);
+        box-shadow: 0 0 6px var(--danger-glow);
+        animation: led-blink-red 1.0s step-start infinite;
+    }
+
+    @keyframes led-blink-red {
+        0%, 49% { opacity: 1; box-shadow: 0 0 8px var(--danger-glow); }
+        50%, 100% { opacity: 0.2; box-shadow: none; }
+    }
+
+    /* NO DATA */
+    .status-led.led-nodata {
+        background: rgba(255, 140, 0, 0.08);
+        border: 1px solid rgba(255, 140, 0, 0.25);
+        color: var(--warning);
+    }
+
+    .status-led.led-nodata .led-dot {
+        background: var(--warning);
+        animation: led-pulse-warn 3s ease-in-out infinite;
+    }
+
+    @keyframes led-pulse-warn {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 1; box-shadow: 0 0 6px rgba(255,140,0,0.5); }
+    }
+
+    /* ─── Diagnostic Terminal Cell ─── */
+    .diag-terminal {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        font-weight: 400;
+        color: #E8A838;  /* amber terminal color */
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: var(--radius-sm);
+        padding: 0.4rem 0.75rem;
+        max-width: 360px;
+        word-break: break-all;
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
+
+    .diag-terminal::before {
+        content: '> ';
+        color: var(--accent);
+        opacity: 0.5;
+    }
+
+    .diag-na {
+        color: var(--text-muted) !important;
+    }
+
+    /* Timestamp cell */
+    .ts-cell {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    /* Empty state */
+    .monitor-empty {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="monitor-header">
+    <div>
+        <h1 class="monitor-title">📡 Service <span>Monitor</span></h1>
+        <p class="monitor-subtitle">// SLA Uptime Dashboard — Real-time service health</p>
+    </div>
+    <span class="ctf-badge ctf-badge-accent">
+        Active Round: {{ round_num }}
+    </span>
+</div>
+
+<div class="monitor-card">
+    <div class="monitor-card-header">
+        <h2 class="monitor-card-title">◈ Service Uptime Status</h2>
+        <span class="ctf-badge ctf-badge-muted">Auto-verified by SLA Checker</span>
+    </div>
+
+    <p class="monitor-description">
+        Uptime status of vulnerability services, validated automatically by the SLA Checker script each round.
+        Services failing connectivity or validation tests cause point deductions for the responsible team.
+    </p>
+
+    <div class="monitor-table-wrap">
+        <table class="monitor-table" aria-label="Service uptime monitor">
+            <thead>
+                <tr>
+                    <th>Team Name</th>
+                    <th>SLA Status</th>
+                    <th>Diagnostic Message</th>
+                    <th>Last Verified</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td><span class="monitor-team-name">{{ log.display_name }}</span></td>
+
+                    <td>
+                        {% if log.status == 'UP' %}
+                        <span class="status-led led-up">
+                            <span class="led-dot"></span>
+                            ONLINE
+                        </span>
+                        {% elif log.status == 'DOWN' %}
+                        <span class="status-led led-down">
+                            <span class="led-dot"></span>
+                            OFFLINE
+                        </span>
+                        {% else %}
+                        <span class="status-led led-nodata">
+                            <span class="led-dot"></span>
+                            CHECKING
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <code class="diag-terminal {% if not log.reason %}diag-na{% endif %}">{{ log.reason or 'N/A' }}</code>
+                    </td>
+
+                    <td>
+                        <span class="ts-cell">{{ log.timestamp or 'Pending start...' }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="monitor-empty">[ No SLA data yet — game has not started ]</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
+
 {% endblock %}

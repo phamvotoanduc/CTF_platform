@@ -1,34 +1,363 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
-    <div class="col-md-9">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="mb-0">Game Leaderboard</h3>
-                <span class="badge bg-primary fs-6">Round: <span id="lbl-round">{{ state.current_round }}</span></span>
+
+<style>
+    /* ═══════════════════════════════════════════════
+       INDEX PAGE — Leaderboard & Game Timer
+    ═══════════════════════════════════════════════ */
+
+    /* Page header */
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    .page-title span {
+        color: var(--accent);
+        text-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* ─── LEADERBOARD TABLE ─── */
+    .lb-table-wrap {
+        overflow-x: auto;
+        border-radius: var(--radius-md);
+    }
+
+    .lb-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 4px;
+    }
+
+    .lb-table thead tr {
+        background: transparent;
+    }
+
+    .lb-table thead th {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid var(--accent-border);
+        white-space: nowrap;
+        background: transparent;
+    }
+
+    .lb-table thead th:first-child { padding-left: 1.25rem; }
+
+    .lb-table tbody tr {
+        background: var(--bg-elevated);
+        border-radius: var(--radius-sm);
+        transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+        position: relative;
+        cursor: default;
+    }
+
+    .lb-table tbody tr:hover {
+        background: rgba(255, 230, 0, 0.04);
+        box-shadow: 0 0 0 1px var(--accent-border);
+        transform: translateX(2px);
+    }
+
+    /* Top 1 row — special gold treatment */
+    .lb-table tbody tr.rank-1 {
+        background: linear-gradient(90deg, rgba(255,230,0,0.10) 0%, rgba(255,230,0,0.03) 50%, var(--bg-elevated) 100%);
+        box-shadow: inset 3px 0 0 0 var(--accent), 0 0 20px rgba(255,230,0,0.08);
+    }
+
+    .lb-table tbody tr.rank-1:hover {
+        box-shadow: inset 3px 0 0 0 var(--accent), 0 0 28px rgba(255,230,0,0.15), 0 0 0 1px var(--accent-border);
+    }
+
+    /* Top 2-3 */
+    .lb-table tbody tr.rank-2 {
+        box-shadow: inset 3px 0 0 0 rgba(192,192,192,0.6);
+    }
+
+    .lb-table tbody tr.rank-3 {
+        box-shadow: inset 3px 0 0 0 rgba(205,127,50,0.6);
+    }
+
+    .lb-table tbody td {
+        padding: 0.85rem 1rem;
+        font-family: var(--font-body);
+        font-size: 0.88rem;
+        color: var(--text-primary);
+        vertical-align: middle;
+        border: none;
+    }
+
+    .lb-table tbody td:first-child { padding-left: 1.25rem; }
+    .lb-table tbody td:last-child { padding-right: 1.25rem; }
+
+    /* Rank cell */
+    .lb-rank {
+        font-family: var(--font-mono);
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        min-width: 3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .lb-rank.gold {
+        color: var(--accent);
+        text-shadow: 0 0 10px var(--accent-glow);
+        font-size: 1.15rem;
+    }
+
+    .lb-rank.silver { color: #C0C0C0; }
+    .lb-rank.bronze { color: #CD7F32; }
+
+    .crown-icon {
+        font-size: 0.95rem;
+    }
+
+    /* Team name */
+    .lb-team-name {
+        font-family: var(--font-body);
+        font-weight: 600;
+        font-size: 0.92rem;
+        color: var(--text-primary);
+    }
+
+    .rank-1 .lb-team-name {
+        color: var(--accent);
+        font-weight: 700;
+    }
+
+    /* Score columns */
+    .lb-atk {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        color: #ff6b6b;
+        font-size: 0.85rem;
+    }
+
+    .lb-def {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        color: var(--accent-bright);
+        font-size: 0.85rem;
+    }
+
+    .lb-sla {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        color: var(--success);
+        font-size: 0.85rem;
+    }
+
+    .lb-total {
+        font-family: var(--font-mono);
+        font-weight: 800;
+        font-size: 1rem;
+        color: #fff;
+    }
+
+    .rank-1 .lb-total {
+        color: var(--accent);
+        text-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    /* Column score prefix icons */
+    .score-prefix {
+        font-size: 0.65rem;
+        opacity: 0.7;
+        margin-right: 2px;
+    }
+
+    /* ─── SIDEBAR WIDGETS ─── */
+    .sidebar { display: flex; flex-direction: column; gap: 1rem; }
+
+    /* Timer Widget */
+    .timer-card {
+        text-align: center;
+        padding: 2rem 1.5rem;
+    }
+
+    .timer-label {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        margin-bottom: 0.75rem;
+    }
+
+    #lbl-timer {
+        display: block;
+        font-family: var(--font-display);
+        font-size: 3.5rem;
+        font-weight: 900;
+        color: var(--accent);
+        text-shadow: 0 0 24px var(--accent-glow), 0 0 48px rgba(255,230,0,0.15);
+        letter-spacing: 0.04em;
+        line-height: 1;
+        margin-bottom: 1.25rem;
+        transition: color 0.3s, text-shadow 0.3s;
+    }
+
+    #lbl-timer.paused {
+        font-size: 1.8rem;
+        color: var(--text-muted);
+        text-shadow: none;
+        letter-spacing: 0.2em;
+    }
+
+    #lbl-timer.blink-warning {
+        animation: blink-red 0.7s ease-in-out infinite;
+    }
+
+    @keyframes blink-red {
+        0%, 100% { color: var(--danger); text-shadow: 0 0 24px var(--danger-glow); }
+        50%       { color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
+    }
+
+    .timer-round-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .timer-round-label {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .timer-round-num {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    /* Game status badge */
+    .game-status-line {
+        margin-top: 0.75rem;
+        display: flex;
+        justify-content: center;
+    }
+
+    /* Login Card sidebar */
+    .sidebar-login-card {
+        padding: 1.25rem;
+        text-align: center;
+    }
+
+    .sidebar-login-card p {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        font-family: var(--font-body);
+        line-height: 1.5;
+    }
+
+    /* Auto-refresh indicator */
+    .refresh-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .refresh-dot {
+        width: 5px;
+        height: 5px;
+        background: var(--success);
+        border-radius: 50%;
+        animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    /* Empty state */
+    .lb-empty {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+    }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">⚡ Game <span>Leaderboard</span></h1>
+    <div class="refresh-indicator">
+        <span class="refresh-dot"></span>
+        <span>Live — updates every 5s</span>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- ════════════ LEADERBOARD ════════════ -->
+    <div class="col-lg-9 col-md-8">
+        <div class="ctf-card">
+            <div class="ctf-card-header">
+                <h3>Rankings</h3>
+                <span class="ctf-badge ctf-badge-accent">
+                    Round <span id="lbl-round" style="margin-left:0.25rem;">{{ state.current_round }}</span>
+                </span>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-dark table-striped align-middle">
+            <div class="ctf-card-body" style="padding: 1rem 0.5rem;">
+                <div class="lb-table-wrap">
+                    <table class="lb-table" id="leaderboard-table" aria-label="Game leaderboard">
                         <thead>
                             <tr>
-                                <th>Rank</th>
-                                <th>Team Name</th>
-                                <th>Attack Points</th>
-                                <th>Defense Points</th>
-                                <th>SLA Uptime</th>
-                                <th>Total Score</th>
+                                <th>#</th>
+                                <th>Team</th>
+                                <th>⚔ Attack</th>
+                                <th>🛡 Defense</th>
+                                <th>📡 SLA</th>
+                                <th>★ Total</th>
                             </tr>
                         </thead>
                         <tbody id="leaderboard-body">
                             {% for team in leaderboard %}
+                            <tr class="{% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% endif %}"
+                                data-rank="{{ loop.index }}">
+                                <td>
+                                    <div class="lb-rank {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
+                                        {% if loop.index == 1 %}<span class="crown-icon">👑</span>{% endif %}
+                                        {{ loop.index }}
+                                    </div>
+                                </td>
+                                <td><span class="lb-team-name">{{ team.display_name }}</span></td>
+                                <td><span class="lb-atk"><span class="score-prefix">+</span>{{ team.attack_points }}</span></td>
+                                <td><span class="lb-def">{{ team.defense_points }}</span></td>
+                                <td><span class="lb-sla"><span class="score-prefix">+</span>{{ team.sla_points }}</span></td>
+                                <td><span class="lb-total">{{ team.attack_points + team.defense_points + team.sla_points }}</span></td>
+                            </tr>
+                            {% else %}
                             <tr>
-                                <td>{{ loop.index }}</td>
-                                <td><strong>{{ team.display_name }}</strong></td>
-                                <td class="text-danger">+{{ team.attack_points }}</td>
-                                <td class="text-warning">{{ team.defense_points }}</td>
-                                <td class="text-success">+{{ team.sla_points }}</td>
-                                <td><strong class="text-info">{{ team.attack_points + team.defense_points + team.sla_points }}</strong></td>
+                                <td colspan="6" class="lb-empty">[ No teams registered yet — waiting for participants ]</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -37,66 +366,156 @@
             </div>
         </div>
     </div>
-    
-    <div class="col-md-3">
-        <div class="card mb-4 text-center">
-            <div class="card-header">Game Timer</div>
-            <div class="card-body">
-                <h5 class="card-title">Round Countdown</h5>
-                <h2 class="display-4 text-danger font-monospace" id="lbl-timer">{{ time_left }}s</h2>
-                <hr>
-                <p>Status: 
-                    {% if state.game_started == '1' %}
-                    <span class="badge bg-success">ACTIVE RUNNING</span>
-                    {% else %}
-                    <span class="badge bg-secondary">PAUSED / NOT STARTED</span>
-                    {% endif %}
-                </p>
+
+    <!-- ════════════ SIDEBAR ════════════ -->
+    <div class="col-lg-3 col-md-4">
+        <div class="sidebar">
+
+            <!-- Timer Card -->
+            <div class="ctf-card timer-card">
+                <div class="timer-label">⏱ Round Countdown</div>
+
+                <div class="timer-round-info">
+                    <span class="timer-round-label">Current Round</span>
+                    <span class="timer-round-num" id="round-display">{{ state.current_round }}</span>
+                </div>
+
+                <span id="lbl-timer">{{ time_left }}s</span>
+
+                <div class="game-status-line">
+                    <span id="game-status" class="ctf-badge {% if state.game_started == '1' %}ctf-badge-success{% else %}ctf-badge-muted{% endif %}">
+                        {% if state.game_started == '1' %}
+                        ● ACTIVE RUNNING
+                        {% else %}
+                        ◌ PAUSED
+                        {% endif %}
+                    </span>
+                </div>
             </div>
-        </div>
-        
-        {% if not session.team_id %}
-        <div class="card">
-            <div class="card-header">Access Dashboard</div>
-            <div class="card-body">
-                <p class="small text-muted">Log in to submit captured flags and register exploits.</p>
-                <a href="/login" class="btn btn-primary w-100">Team Login</a>
+
+            <!-- Login CTA (if not logged in) -->
+            {% if not session.team_id %}
+            <div class="ctf-card sidebar-login-card">
+                <div class="ctf-card-header" style="margin: -1.25rem -1.25rem 1rem; border-radius: 0;">
+                    <h4 style="font-size:0.75rem;">Access Dashboard</h4>
+                </div>
+                <p>Log in to submit captured flags and register your exploits on the scoreboard.</p>
+                <a href="/login" class="btn-ctf-primary" id="sidebar-login-btn" style="width:100%; justify-content:center;">
+                    ▶ Team Login
+                </a>
             </div>
+            {% endif %}
+
         </div>
-        {% endif %}
     </div>
 </div>
 
 <script>
-    // AJAX Leaderboard & Timer Polling
+    let timeLeft = parseInt("{{ time_left }}") || 0;
+    let gameStarted = "{{ state.game_started }}" === "1";
+    let timerInterval = null;
+
+    // ─── DOM helpers ───
+    function buildRankCell(idx) {
+        const rankClass = idx === 1 ? 'gold' : idx === 2 ? 'silver' : idx === 3 ? 'bronze' : '';
+        const crown = idx === 1 ? '<span class="crown-icon">👑</span>' : '';
+        return `<div class="lb-rank ${rankClass}">${crown}${idx}</div>`;
+    }
+
+    function getRowClass(idx) {
+        if (idx === 1) return 'rank-1';
+        if (idx === 2) return 'rank-2';
+        if (idx === 3) return 'rank-3';
+        return '';
+    }
+
+    // ─── Timer ───
+    function updateTimerDisplay() {
+        const lblTimer = document.getElementById('lbl-timer');
+        const statusSpan = document.getElementById('game-status');
+
+        if (!gameStarted) {
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+            lblTimer.textContent = 'PAUSED';
+            lblTimer.className = 'paused';
+            if (statusSpan) {
+                statusSpan.className = 'ctf-badge ctf-badge-muted';
+                statusSpan.textContent = '◌ PAUSED';
+            }
+            return;
+        }
+
+        if (statusSpan) {
+            statusSpan.className = 'ctf-badge ctf-badge-success';
+            statusSpan.textContent = '● ACTIVE RUNNING';
+        }
+
+        lblTimer.textContent = timeLeft + 's';
+        lblTimer.className = timeLeft <= 10 && timeLeft > 0 ? 'blink-warning' : '';
+    }
+
+    function startTimer() {
+        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        if (!gameStarted) { updateTimerDisplay(); return; }
+
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+            }
+            updateTimerDisplay();
+        }, 1000);
+    }
+
+    // ─── AJAX Leaderboard & Timer Polling ───
     function updateLeaderboard() {
         fetch('/api/leaderboard')
         .then(res => res.json())
         .then(data => {
-            document.getElementById('lbl-round').textContent = data.current_round;
-            
-            // Render Countdown
-            document.getElementById('lbl-timer').textContent = data.time_left + 's';
-            
+            // Update round display
+            const roundEl = document.getElementById('lbl-round');
+            const roundEl2 = document.getElementById('round-display');
+            if (roundEl) roundEl.textContent = data.current_round;
+            if (roundEl2) roundEl2.textContent = data.current_round;
+
+            // Sync timer
+            timeLeft = data.time_left;
+            gameStarted = data.game_started === "1";
+            startTimer();
+
             // Rebuild table rows
             const tbody = document.getElementById('leaderboard-body');
             tbody.innerHTML = '';
-            data.teams.forEach((team, idx) => {
+
+            if (!data.teams || data.teams.length === 0) {
                 const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="6" class="lb-empty">[ No teams registered yet — waiting for participants ]</td>`;
+                tbody.appendChild(tr);
+                return;
+            }
+
+            data.teams.forEach((team, idx) => {
+                const rank = idx + 1;
+                const tr = document.createElement('tr');
+                tr.className = getRowClass(rank);
+                tr.dataset.rank = rank;
+                const total = (team.attack_points || 0) + (team.defense_points || 0) + (team.sla_points || 0);
                 tr.innerHTML = `
-                    <td>${idx + 1}</td>
-                    <td><strong>${team.display_name}</strong></td>
-                    <td class="text-danger">+${team.attack_points}</td>
-                    <td class="text-warning">${team.defense_points}</td>
-                    <td class="text-success">+${team.sla_points}</td>
-                    <td><strong class="text-info">${team.total_points}</strong></td>
+                    <td>${buildRankCell(rank)}</td>
+                    <td><span class="lb-team-name">${team.display_name}</span></td>
+                    <td><span class="lb-atk"><span class="score-prefix">+</span>${team.attack_points}</span></td>
+                    <td><span class="lb-def">${team.defense_points}</span></td>
+                    <td><span class="lb-sla"><span class="score-prefix">+</span>${team.sla_points}</span></td>
+                    <td><span class="lb-total">${team.total_points !== undefined ? team.total_points : total}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
         })
         .catch(err => console.error("Leaderboard fetch error:", err));
     }
-    
+
+    // Start initial timer
+    startTimer();
     // Poll every 5 seconds
     setInterval(updateLeaderboard, 5000);
 </script>

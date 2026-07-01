@@ -1,52 +1,63 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
-    <div class="col-md-5">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Send Encryption Message</h3>
-            </div>
-            <div class="card-body">
+<div class="row g-3">
+    <!-- Send panel -->
+    <div class="col-xl-5 col-lg-6">
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>📤 Send Encrypted Message</h3></div>
+            <div class="ctf-card-body">
                 <div id="send-msg-status"></div>
                 <form id="send-message-form">
-                    <div class="mb-3">
-                        <label for="receiver" class="form-label">Recipient Username</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" id="receiver" required>
+                    <div class="ctf-form-group">
+                        <label for="receiver" class="ctf-label">Recipient Username</label>
+                        <input type="text" class="ctf-input" id="receiver" required placeholder="broker_username">
                     </div>
-                    <div class="mb-3">
-                        <label for="message" class="form-label">Message Payload</label>
-                        <textarea class="form-control bg-dark text-white border-secondary" id="message" rows="3" required></textarea>
+                    <div class="ctf-form-group">
+                        <label for="message" class="ctf-label">Message Payload</label>
+                        <textarea class="ctf-input" id="message" rows="4" required placeholder="Type encrypted message payload..."></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Send Encrypted Message</button>
+                    <button type="submit" class="btn-ctf-primary">Transmit Payload →</button>
                 </form>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-7">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Secure Message Inbox</h3>
-            </div>
-            <div class="card-body">
+
+    <!-- Inbox panel -->
+    <div class="col-xl-7 col-lg-6">
+        <div class="ctf-card">
+            <div class="ctf-card-header">
+                <h3>📥 Secure Inbox</h3>
                 {% if messages %}
-                <div class="list-group">
+                <span class="ctf-badge ctf-badge-accent">{{ messages|length }} MSG</span>
+                {% endif %}
+            </div>
+            <div class="ctf-card-body">
+                {% if messages %}
+                <div style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;">
                     {% for msg in messages %}
-                    <div class="list-group-item bg-dark text-white border-secondary mb-2">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1 text-warning">From: {{ msg.sender }} &rarr; To: {{ msg.receiver }}</h5>
-                            <small class="text-muted">ID: {{ msg.id }}</small>
+                    <div style="background:rgba(5,5,8,0.7);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:12px;transition:border-color var(--transition-fast);" onmouseover="this.style.borderColor='var(--accent-border)'" onmouseout="this.style.borderColor='var(--border-subtle)'">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <span class="text-accent fw-bold font-mono" style="font-size:0.78rem;">{{ msg.sender }} → {{ msg.receiver }}</span>
+                            <span class="ctf-badge-muted" style="font-size:0.58rem;">MSG #{{ msg.id }}</span>
                         </div>
-                        <p class="mb-1 bg-black p-2 text-monospace">{{ msg.message }}</p>
+                        <div style="background:#020204;border-left:2px solid var(--accent);border-radius:0 4px 4px 0;padding:8px 12px;font-family:var(--font-mono);font-size:0.78rem;color:var(--success);overflow-x:auto;">
+                            {{ msg.message }}
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p>No messages found in your queue.</p>
+                <div style="text-align:center;padding:30px 0;">
+                    <div style="font-size:2rem;opacity:0.2;margin-bottom:10px;">📭</div>
+                    <p class="text-muted" style="font-size:0.82rem;">No encrypted communications found.</p>
+                </div>
                 {% endif %}
-                <hr>
-                <div class="alert alert-info">
-                    <strong>IDOR Testing Bench:</strong> Read messages directly by query ID using: <code>/api/message/&lt;id&gt;</code>. Try to view the private message from <code>admin</code> containing the database flag!
+
+                <hr class="divider">
+
+                <div class="vuln-hint vuln-hint-danger">
+                    <div class="vuln-hint-title">🕵️ IDOR Vulnerability Advisory:</div>
+                    Encrypted messages can be requested directly by ID at: <code>/api/message/&lt;id&gt;</code>. Read the private message from <code>admin</code> containing the system flag!
                 </div>
             </div>
         </div>
@@ -59,26 +70,25 @@ document.getElementById('send-message-form').addEventListener('submit', function
     const receiver = document.getElementById('receiver').value;
     const message = document.getElementById('message').value;
     const statusDiv = document.getElementById('send-msg-status');
-    
+
+    statusDiv.innerHTML = '<div class="ctf-alert ctf-alert-warning">Transmitting payload...</div>';
+
     const formData = new FormData();
     formData.append('receiver', receiver);
     formData.append('message', message);
-    
-    fetch('/api/message/send', {
-        method: 'POST',
-        body: formData
-    })
+
+    fetch('/api/message/send', { method: 'POST', body: formData })
     .then(res => res.json())
     .then(data => {
         if(data.status === 'success') {
-            statusDiv.innerHTML = '<div class="alert alert-success">Message transmitted!</div>';
+            statusDiv.innerHTML = '<div class="ctf-alert ctf-alert-success">✅ Message transmitted!</div>';
             setTimeout(() => { location.reload(); }, 1000);
         } else {
-            statusDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+            statusDiv.innerHTML = `<div class="ctf-alert ctf-alert-danger">⛔ ${data.message}</div>`;
         }
     })
     .catch(err => {
-        statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${err}</div>`;
+        statusDiv.innerHTML = `<div class="ctf-alert ctf-alert-danger">⛔ Error: ${err}</div>`;
     });
 });
 </script>

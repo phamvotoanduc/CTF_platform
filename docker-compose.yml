@@ -5,7 +5,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - gameserver_data:/app/data
+      - ./gameserver/data:/app/data
     environment:
       - FLASK_ENV=production
       - ADMIN_SECRET=SuperSecretAdminKey1337!
@@ -76,5 +76,4 @@ networks:
     driver: bridge
 
 volumes:
-  gameserver_data:
   gitea_data:

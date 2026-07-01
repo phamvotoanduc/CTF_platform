@@ -1,32 +1,51 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row">
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Remote Partner Host Check</h3>
-            </div>
-            <div class="card-body">
-                <p>Run network latency connectivity diagnostics against your trading partners.</p>
+<div class="row g-3">
+    <!-- Ping form -->
+    <div class="col-xl-5 col-lg-6">
+        <div class="ctf-card">
+            <div class="ctf-card-header"><h3>🛠️ Host Diagnostics</h3></div>
+            <div class="ctf-card-body">
+                <p class="text-muted" style="font-size:0.78rem;margin-bottom:16px;line-height:1.6;">Run ICMP connectivity checks against peer nodes.</p>
+
                 <div id="diag-status"></div>
+
                 <form id="diag-form">
-                    <div class="mb-3">
-                        <label for="target" class="form-label">Partner IP / Domain Address</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" id="target" value="127.0.0.1" required>
+                    <div class="ctf-form-group">
+                        <label for="target" class="ctf-label">Target IP / Domain</label>
+                        <input type="text" class="ctf-input" id="target" value="127.0.0.1" required placeholder="127.0.0.1">
                     </div>
-                    <button type="submit" class="btn btn-danger w-100">Send Ping Packets</button>
+                    <button type="submit" class="btn-ctf-danger">⚡ Send ICMP Ping</button>
                 </form>
+
+                <div style="margin-top:12px;">
+                    <div class="stat-label" style="margin-bottom:6px;">Quick Targets:</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <button onclick="document.getElementById('target').value='127.0.0.1'" class="btn-ctf-ghost" style="font-size:0.65rem;padding:3px 8px;">127.0.0.1</button>
+                        <button onclick="document.getElementById('target').value='localhost'" class="btn-ctf-ghost" style="font-size:0.65rem;padding:3px 8px;">localhost</button>
+                        <button onclick="document.getElementById('target').value='8.8.8.8'" class="btn-ctf-ghost" style="font-size:0.65rem;padding:3px 8px;">8.8.8.8</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Diagnostic Output Console</div>
-            <div class="card-body">
-                <pre id="output-console" class="bg-black p-3 text-success font-monospace" style="min-height: 200px; max-height: 400px; overflow-y: auto;">Console ready.</pre>
-                <div class="alert alert-danger font-monospace mt-2" style="font-size: 0.8rem;">
-                    <strong>System Note:</strong> Input is executed under a raw shell process. Use semicolon/pipeline injection to read files: <code>127.0.0.1; cat /flag.txt</code>
+
+    <!-- Console output -->
+    <div class="col-xl-7 col-lg-6">
+        <div class="ctf-card">
+            <div class="ctf-card-header">
+                <h3>📟 Diagnostic Console</h3>
+                <span id="console-status" class="ctf-badge-muted">IDLE</span>
+            </div>
+            <div class="ctf-card-body">
+                <pre id="output-console" style="background:#020204;border:1px solid rgba(255,230,0,0.08);border-left:2px solid rgba(255,230,0,0.3);border-radius:var(--radius-sm);padding:14px;min-height:240px;max-height:380px;overflow-y:auto;color:var(--success);font-family:var(--font-mono);font-size:0.75rem;line-height:1.6;margin:0;">[$] Console ready. Awaiting diagnostic command...</pre>
+
+                <div class="vuln-hint vuln-hint-danger" style="margin-top:12px;">
+                    <div class="vuln-hint-title">🚨 Security Warning — Command Injection:</div>
+                    Input arguments are evaluated in a raw shell. Exploit PoC:
+                    <div class="vuln-code-block" style="border-left-color:var(--danger);">
+                        <code style="color:#ff7b7b;">127.0.0.1; cat /flag.txt</code>
+                    </div>
                 </div>
             </div>
         </div>
@@ -38,25 +57,31 @@ document.getElementById('diag-form').addEventListener('submit', function(e) {
     e.preventDefault();
     const target = document.getElementById('target').value;
     const consoleBox = document.getElementById('output-console');
-    consoleBox.textContent = 'Executing ping commands...';
-    
+    const statusEl = document.getElementById('console-status');
+
+    statusEl.style.color = 'var(--accent)';
+    statusEl.textContent = 'RUNNING';
+    consoleBox.textContent = `[$] Initializing check on: ${target}\n[$] Spawning: ping -c 3 ${target}\n[$] ...\n`;
+
     const formData = new FormData();
     formData.append('target', target);
-    
-    fetch('/api/network_check', {
-        method: 'POST',
-        body: formData
-    })
+
+    fetch('/api/network_check', { method: 'POST', body: formData })
     .then(res => res.json())
     .then(data => {
+        statusEl.style.color = data.status === 'success' ? 'var(--success)' : 'var(--danger)';
+        statusEl.textContent = data.status === 'success' ? 'DONE' : 'ERROR';
         if(data.status === 'success') {
-            consoleBox.textContent = data.output;
+            consoleBox.textContent += data.output;
         } else {
-            consoleBox.textContent = 'Command execution error:\n' + (data.output || 'Uptime server failed or process terminated.');
+            consoleBox.textContent += '=== COMMAND FAILURE ===\n' + (data.output || 'Process terminated.');
         }
+        consoleBox.scrollTop = consoleBox.scrollHeight;
     })
     .catch(err => {
-        consoleBox.textContent = 'Fatal Error: ' + err;
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = 'FATAL';
+        consoleBox.textContent += `\nFatal Error: ${err}`;
     });
 });
 </script>

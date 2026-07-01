@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Databases and runtime data
+gameserver/data/
+*.db
+*.sqlite3
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# OS files
+.DS_Store
+Thumbs.db
